@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import yaml
 from sklearn.metrics import confusion_matrix
 
 sns.set()
@@ -60,6 +61,11 @@ def dump_json(obj, path):
 def load_json(path):
     with open(path) as f:
         return json.load(f)
+
+
+def load_yaml(path):
+    with open(path) as f:
+        return yaml.safe_load(f)
 
 
 def save_feature_importance(model, columns, path):
