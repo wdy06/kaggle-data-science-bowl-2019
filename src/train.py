@@ -11,6 +11,7 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from tqdm import tqdm
 
 import features
+import metrics
 import mylogger
 import utils
 from dataset import DSB2019Dataset
@@ -91,7 +92,7 @@ try:
             fold + 1, str(timedelta(seconds=time() - start_time))))
 
     logger.debug('-' * 30)
-    logger.debug(f'OOF QWK: {utils.qwk(y, oof)}')
+    logger.debug(f'OOF QWK: {metrics.qwk(y, oof)}')
     logger.debug('-' * 30)
 
     # train model on all data once
