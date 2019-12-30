@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 import utils
@@ -13,3 +12,5 @@ class DSB2019Dataset():
             self.train_labels = pd.read_csv(
                 utils.DATA_DIR / 'train_labels.csv')
             self.specs = pd.read_csv(utils.DATA_DIR / 'specs.csv')
+        if self.debug:
+            self.main_df = self.main_df[:40000]

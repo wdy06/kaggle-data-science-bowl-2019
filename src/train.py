@@ -1,25 +1,19 @@
 import argparse
 import os
+from datetime import datetime, timedelta
+from pathlib import Path
+from time import time
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from tqdm import tqdm
-from time import time
-import math
-from datetime import datetime, timedelta
-from logging import getLogger, StreamHandler, FileHandler, DEBUG
-
-from lightgbm import LGBMRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor
 from sklearn.model_selection import KFold, StratifiedKFold
-from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import LabelEncoder
-from lightgbm import LGBMClassifier
+from tqdm import tqdm
 
-from dataset import DSB2019Dataset
 import features
 import mylogger
 import utils
-
+from dataset import DSB2019Dataset
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
 parser.add_argument("--debug", help="run debug mode",
@@ -45,23 +39,18 @@ try:
     logger.debug(f'created: {result_dir}')
     logger.debug('loading data ...')
 
-    train = DSB2019Dataset(mode='train')
+    train = DSB2019Dataset(mode='train', debug=args.debug)
     test = DSB2019Dataset(mode='test')
 
+    logger.debug('preprocessing ...')
     # encode title
-    list_of_user_activities = list(set(train.main_df['title'].value_counts(
-    ).index).union(set(test.main_df['title'].value_counts().index)))
-    activities_map = dict(
-        zip(list_of_user_activities, np.arange(len(list_of_user_activities))))
-
+    activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
     train.main_df['title'] = train.main_df['title'].map(activities_map)
     test.main_df['title'] = test.main_df['title'].map(activities_map)
     train.train_labels['title'] = train.train_labels['title'].map(
         activities_map)
 
-    win_code = dict(zip(activities_map.values(),
-                        (4100*np.ones(len(activities_map))).astype('int')))
-    win_code[activities_map['Bird Measurer (Assessment)']] = 4110
+    win_code = utils.make_win_code(activities_map)
 
     train.main_df['timestamp'] = pd.to_datetime(train.main_df['timestamp'])
     test.main_df['timestamp'] = pd.to_datetime(test.main_df['timestamp'])
@@ -143,6 +132,7 @@ try:
     submission = pd.read_csv(utils.DATA_DIR / 'sample_submission.csv')
     submission['accuracy_group'] = np.round(preds).astype('int')
     submission.to_csv('submission.csv', index=False)
+
 
 except Exception as e:
     print(e)
