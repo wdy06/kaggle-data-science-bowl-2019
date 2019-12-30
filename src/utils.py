@@ -1,6 +1,7 @@
 import json
 import os
 import pickle
+from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -32,6 +33,13 @@ class NpEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             return super(NpEncoder, self).default(obj)
+
+
+def make_experiment_name(debug):
+    experiment_name = datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')
+    if debug:
+        experiment_name = 'debug-' + experiment_name
+    return experiment_name
 
 
 def dump_pickle(obj, path):

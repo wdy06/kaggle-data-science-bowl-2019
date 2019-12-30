@@ -25,14 +25,10 @@ print(utils.DATA_DIR)
 print(utils.RESULTS_BASE_DIR)
 
 try:
-    experiment_name = datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')
 
-    if args.debug:
-        result_dir = Path(utils.RESULTS_BASE_DIR) / \
-            ('debug-' + experiment_name)
-    else:
-        result_dir = Path(utils.RESULTS_BASE_DIR) / experiment_name
-        # slack.notify_start(experiment_name)
+    result_dir = utils.RESULTS_BASE_DIR / \
+        utils.make_experiment_name(args.debug)
+    # slack.notify_start(experiment_name)
     os.mkdir(result_dir)
 
     logger = mylogger.get_mylogger(filename=result_dir / 'log')
