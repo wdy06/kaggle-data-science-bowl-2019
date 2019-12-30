@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 
 def get_data(user_sample, win_code, test_set=False):
@@ -18,7 +17,7 @@ def get_data(user_sample, win_code, test_set=False):
     for i, session in user_sample.groupby('game_session', sort=False):
         session_type = session['type'].iloc[0]
         session_title = session['title'].iloc[0]
-        if test_set == True:
+        if test_set is True:
             second_condition = True
         else:
             if len(session) > 1:
@@ -66,7 +65,7 @@ def get_data(user_sample, win_code, test_set=False):
             features['accumulated_actions'] = accumulated_actions
             accumulated_accuracy_group += features['accuracy_group']
             accuracy_groups[features['accuracy_group']] += 1
-            if test_set == True:
+            if test_set is True:
                 all_assessments.append(features)
             else:
                 if true_attempts+false_attempts > 0:
