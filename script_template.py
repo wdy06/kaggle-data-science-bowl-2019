@@ -20,5 +20,7 @@ def run(command):
     os.system('export PYTHONPATH=${PYTHONPATH}:/kaggle/working && ' + command)
 
 
+print(os.environ)
+
 run('python setup.py develop --install-dir /kaggle/working')
-run('python src/main.py')
+run('python src/train.py')
