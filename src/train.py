@@ -1,13 +1,12 @@
 import argparse
 import os
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import timedelta
 from time import time
 
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier, LGBMRegressor
-from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from tqdm import tqdm
 
 import features
@@ -74,7 +73,7 @@ try:
 
     oof = np.zeros(len(X))
     NFOLDS = 5
-    folds = KFold(n_splits=NFOLDS, shuffle=True, random_state=2019)
+    folds = StratifiedKFold(n_splits=NFOLDS, shuffle=True, random_state=2019)
 
     training_start_time = time()
     for fold, (trn_idx, test_idx) in enumerate(folds.split(X, y)):
@@ -91,8 +90,9 @@ try:
         logger.debug('Fold {} finished in {}'.format(
             fold + 1, str(timedelta(seconds=time() - start_time))))
 
+    val_score = metrics.qwk(y, oof)
     logger.debug('-' * 30)
-    logger.debug(f'OOF QWK: {metrics.qwk(y, oof)}')
+    logger.debug(f'OOF QWK: {val_score}')
     logger.debug('-' * 30)
 
     # train model on all data once
@@ -109,9 +109,13 @@ try:
     preds = clf.predict(X_test[all_features],
                         num_iteration=clf.best_iteration_)
 
+    save_path = result_dir / f'submission_val{val_score:.5f}.csv'
+    if utils.ON_KAGGLE:
+        save_path = 'submission.csv'
     submission = pd.read_csv(utils.DATA_DIR / 'sample_submission.csv')
     submission['accuracy_group'] = np.round(preds).astype('int')
-    submission.to_csv('submission.csv', index=False)
+    submission.to_csv(save_path, index=False)
+    logger.debug(f'save to {save_path}')
 
 
 except Exception as e:
