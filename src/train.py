@@ -14,6 +14,8 @@ import metrics
 import mylogger
 import utils
 from dataset import DSB2019Dataset
+from models.model_lgbm import ModelLGBM
+from runner import Runner
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
 parser.add_argument("--debug", help="run debug mode",
@@ -76,28 +78,21 @@ try:
     folds = StratifiedKFold(n_splits=NFOLDS, shuffle=True, random_state=2019)
 
     training_start_time = time()
-    for fold, (trn_idx, test_idx) in enumerate(folds.split(X, y)):
-        start_time = time()
-        logger.debug(f'Training on fold {fold+1}')
-        clf = LGBMClassifier(**default_param)
-        clf.fit(X.loc[trn_idx, all_features], y.loc[trn_idx], eval_set=(X.loc[test_idx, all_features], y.loc[test_idx]),
-                verbose=100, early_stopping_rounds=100,
-                categorical_feature=cat_features)
+    fold_indices = list(folds.split(X, y))
+    runner = Runner(run_name='train_cv',
+                    x=X[all_features],
+                    y=y,
+                    model_cls=ModelLGBM,
+                    params=default_param,
+                    metrics=metrics.qwk,
+                    save_dir=result_dir,
+                    fold_indices=fold_indices
+                    )
+    val_score = runner.run_train_cv()
 
-        oof[test_idx] = clf.predict(
-            X.loc[test_idx, all_features], num_iteration=clf.best_iteration_).reshape(len(test_idx))
-
-        logger.debug('Fold {} finished in {}'.format(
-            fold + 1, str(timedelta(seconds=time() - start_time))))
-
-    val_score = metrics.qwk(y, oof)
     logger.debug('-' * 30)
     logger.debug(f'OOF QWK: {val_score}')
     logger.debug('-' * 30)
-
-    # train model on all data once
-    clf = LGBMClassifier(**default_param)
-    clf.fit(X, y, verbose=100, categorical_feature=cat_features)
 
     # process test set
     new_test = []
@@ -106,8 +101,8 @@ try:
         new_test.append(a)
 
     X_test = pd.DataFrame(new_test)
-    preds = clf.predict(X_test[all_features],
-                        num_iteration=clf.best_iteration_)
+    runner.run_train_all()
+    preds = runner.run_predict_all(X_test[all_features])
 
     save_path = result_dir / f'submission_val{val_score:.5f}.csv'
     if utils.ON_KAGGLE:
