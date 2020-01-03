@@ -62,10 +62,7 @@ try:
 
     features_list = utils.load_yaml(utils.CONFIG_DIR / 'features_list.yml')
     all_features = features_list['features']
-    # all_features = [
-    #     x for x in new_train.columns if x not in ['accuracy_group']]
     logger.debug(all_features)
-    # cat_features = ['session_title']
     X, y = new_train[all_features], new_train['accuracy_group']
 
     config_path = utils.CONFIG_DIR / '000_lgbm_baseline.yml'
