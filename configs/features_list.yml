@@ -1,0 +1,19 @@
+features:
+    - Activity
+    - Assessment
+    - Clip
+    - Game
+    - accumulated_accuracy
+    - accumulated_correct_attempts
+    - accumulated_uncorrect_attempts
+    - accumulated_accuracy_group
+    - accumulated_actions
+    - duration_mean
+    - session_title
+    - 0
+    - 1
+    - 2
+    - 3
+
+categorical_features:
+    - session_title

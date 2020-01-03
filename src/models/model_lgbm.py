@@ -8,18 +8,17 @@ from models.model import Model
 
 class ModelLGBM(Model):
 
-    def fit(self, train_x, train_y, valid_x=None, valid_y=None,
-            categorical_features=None):
-        if categorical_features is None:
-            categorical_features = []
+    def fit(self, train_x, train_y, valid_x=None, valid_y=None):
+
+        cat_features = self.params.get('categorical_feature', [])
         self.model = LGBMClassifier(**self.params)
         if (valid_x is None) or (valid_y is None):
             self.model.fit(train_x, train_y,
-                           verbose=100, categorical_feature=categorical_features)
+                           verbose=100, categorical_feature=cat_features)
         else:
             self.model.fit(train_x, train_y, eval_set=(valid_x, valid_y),
                            verbose=100, early_stopping_rounds=100,
-                           categorical_feature=categorical_features)
+                           categorical_feature=cat_features)
 
     def predict(self, test_x):
         return self.model.predict(
