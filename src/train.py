@@ -1,11 +1,9 @@
 import argparse
 import os
-from datetime import timedelta
 from time import time
 
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMClassifier, LGBMRegressor
 from sklearn.model_selection import StratifiedKFold
 from tqdm import tqdm
 
@@ -14,8 +12,8 @@ import metrics
 import mylogger
 import utils
 from dataset import DSB2019Dataset
-from models.model_lgbm import ModelLGBMClassifier
 from runner import Runner
+from optimizedrounder import OptimizedRounder
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
 parser.add_argument("--debug", help="run debug mode",
@@ -61,8 +59,9 @@ try:
     logger.debug(all_features)
     X, y = new_train[all_features], new_train['accuracy_group']
 
-    config_path = utils.CONFIG_DIR / '000_lgbm_baseline.yml'
+    config_path = utils.CONFIG_DIR / '001_lgbm_regression.yml'
     config = utils.load_yaml(config_path)
+    logger.debug(config)
     model_params = config['model_params']
     model_params['categorical_feature'] = features_list['categorical_features']
 
@@ -96,7 +95,9 @@ try:
     X_test = features.generate_features(test.main_df, win_code, mode='test')
     runner.run_train_all()
     preds = runner.run_predict_all(X_test[all_features])
-
+    if config['task'] == 'regression':
+        optR = OptimizedRounder()
+        preds = optR.predict(preds, optR.coef_)
     save_path = result_dir / f'submission_val{val_score:.5f}.csv'
     if utils.ON_KAGGLE:
         save_path = 'submission.csv'
