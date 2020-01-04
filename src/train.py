@@ -14,7 +14,7 @@ import metrics
 import mylogger
 import utils
 from dataset import DSB2019Dataset
-from models.model_lgbm import ModelLGBM
+from models.model_lgbm import ModelLGBMClassifier
 from runner import Runner
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
@@ -79,7 +79,7 @@ try:
     runner = Runner(run_name='train_cv',
                     x=X[all_features],
                     y=y,
-                    model_cls=ModelLGBM,
+                    model_cls=ModelLGBMClassifier,
                     params=default_param,
                     metrics=metrics.qwk,
                     save_dir=result_dir,

@@ -6,12 +6,14 @@ import utils
 from models.model import Model
 
 
-class ModelLGBM(Model):
+class ModelLGBMClassifier(Model):
 
     def fit(self, train_x, train_y, valid_x=None, valid_y=None):
+        _params = self.params.copy()
 
-        cat_features = self.params.get('categorical_feature', [])
-        self.model = LGBMClassifier(**self.params)
+        cat_features = _params.pop('categorical_feature', [])
+
+        self.model = LGBMClassifier(**_params)
         if (valid_x is None) or (valid_y is None):
             self.model.fit(train_x, train_y,
                            verbose=100, categorical_feature=cat_features)
