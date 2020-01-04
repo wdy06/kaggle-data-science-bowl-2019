@@ -62,13 +62,14 @@ try:
     X, y = new_train[all_features], new_train['accuracy_group']
 
     config_path = utils.CONFIG_DIR / '000_lgbm_baseline.yml'
-    default_param = utils.load_yaml(config_path)
-    default_param['categorical_feature'] = features_list['categorical_features']
+    config = utils.load_yaml(config_path)
+    model_params = config['model_params']
+    model_params['categorical_feature'] = features_list['categorical_features']
 
     if not utils.ON_KAGGLE:
-        default_param['device'] = 'gpu'
-        default_param['gpu_platform_id'] = 0
-        default_param['gpu_device_id'] = 0
+        model_params['device'] = 'gpu'
+        model_params['gpu_platform_id'] = 0
+        model_params['gpu_device_id'] = 0
 
     oof = np.zeros(len(X))
     NFOLDS = 5
@@ -79,8 +80,8 @@ try:
     runner = Runner(run_name='train_cv',
                     x=X[all_features],
                     y=y,
-                    model_cls=ModelLGBMClassifier,
-                    params=default_param,
+                    model_cls=config['model_class'],
+                    params=model_params,
                     metrics=metrics.qwk,
                     save_dir=result_dir,
                     fold_indices=fold_indices

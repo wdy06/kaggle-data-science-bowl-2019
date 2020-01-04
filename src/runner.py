@@ -1,5 +1,7 @@
 import numpy as np
 
+from models.helper import MODEL_MAP
+
 
 class Runner:
     def __init__(self, run_name, x, y,
@@ -54,4 +56,4 @@ class Runner:
         return preds
 
     def build_model(self):
-        return self.model_cls('test_build', self.params)
+        return MODEL_MAP[self.model_cls]('test_build', self.params)
