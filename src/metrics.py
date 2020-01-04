@@ -1,24 +1,28 @@
-from sklearn.metrics import confusion_matrix
 import numpy as np
+from numba import jit
 
 
-def qwk(act, pred, n=4, hist_range=(0, 3)):
+@jit
+def qwk(a1, a2, max_rat=3):
+    assert(len(a1) == len(a2))
+    a1 = np.asarray(a1, dtype=int)
+    a2 = np.asarray(a2, dtype=int)
 
-    O = confusion_matrix(act, pred)
-    O = np.divide(O, np.sum(O))
+    hist1 = np.zeros((max_rat + 1, ))
+    hist2 = np.zeros((max_rat + 1, ))
 
-    W = np.zeros((n, n))
-    for i in range(n):
-        for j in range(n):
-            W[i][j] = ((i-j)**2)/((n-1)**2)
+    o = 0
+    for k in range(a1.shape[0]):
+        i, j = a1[k], a2[k]
+        hist1[i] += 1
+        hist2[j] += 1
+        o += (i - j) * (i - j)
 
-    act_hist = np.histogram(act, bins=n, range=hist_range)[0]
-    prd_hist = np.histogram(pred, bins=n, range=hist_range)[0]
+    e = 0
+    for i in range(max_rat + 1):
+        for j in range(max_rat + 1):
+            e += hist1[i] * hist2[j] * (i - j) * (i - j)
 
-    E = np.outer(act_hist, prd_hist)
-    E = np.divide(E, np.sum(E))
+    e = e / a1.shape[0]
 
-    num = np.sum(np.multiply(W, O))
-    den = np.sum(np.multiply(W, E))
-
-    return 1-np.divide(num, den)
+    return 1 - o / e
