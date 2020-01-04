@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
 
 
 def get_data(user_sample, win_code, test_set=False):
@@ -79,5 +81,20 @@ def get_data(user_sample, win_code, test_set=False):
             last_activitiy = session_type
 
     if test_set:
-        return all_assessments[-1]
+        return [all_assessments[-1]]
     return all_assessments
+
+
+def generate_features(df, win_code, mode):
+    if mode == 'train':
+        total = 17000
+        test_set = False
+    elif mode == 'test':
+        total = 1000
+        test_set = True
+    else:
+        raise ValueError('mode must be train or test.')
+    compiled_data = []
+    for i, (ins_id, user_sample) in tqdm(enumerate(df.groupby('installation_id', sort=False)), total=total):
+        compiled_data += get_data(user_sample, win_code, test_set)
+    return pd.DataFrame(compiled_data)

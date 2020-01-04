@@ -53,12 +53,8 @@ try:
     train.main_df['timestamp'] = pd.to_datetime(train.main_df['timestamp'])
     test.main_df['timestamp'] = pd.to_datetime(test.main_df['timestamp'])
 
-    compiled_data = []
-    for i, (ins_id, user_sample) in tqdm(enumerate(train.main_df.groupby('installation_id', sort=False)), total=17000):
-        compiled_data += features.get_data(user_sample, win_code)
-
-    new_train = pd.DataFrame(compiled_data)
-    # del compiled_data
+    new_train = features.generate_features(
+        train.main_df, win_code, mode='train')
 
     features_list = utils.load_yaml(utils.CONFIG_DIR / 'features_list.yml')
     all_features = features_list['features']
@@ -96,12 +92,7 @@ try:
     logger.debug('-' * 30)
 
     # process test set
-    new_test = []
-    for ins_id, user_sample in tqdm(test.main_df.groupby('installation_id', sort=False), total=1000):
-        a = features.get_data(user_sample, win_code, test_set=True)
-        new_test.append(a)
-
-    X_test = pd.DataFrame(new_test)
+    X_test = features.generate_features(test.main_df, win_code, mode='test')
     runner.run_train_all()
     preds = runner.run_predict_all(X_test[all_features])
 
