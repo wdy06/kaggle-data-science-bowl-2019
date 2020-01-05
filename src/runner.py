@@ -40,7 +40,7 @@ class Runner:
             model.save_model(self.save_dir / f'model_fold{i_fold}.pkl')
             oof_preds[val_idx] = y_pred
         oof_score = self.metrics(self.y, oof_preds)
-        return oof_score
+        return oof_score, oof_preds
 
     def run_predict_cv(self):
         pass

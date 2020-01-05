@@ -12,8 +12,8 @@ import metrics
 import mylogger
 import utils
 from dataset import DSB2019Dataset
-from runner import Runner
 from optimizedrounder import OptimizedRounder
+from runner import Runner
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
 parser.add_argument("--debug", help="run debug mode",
@@ -85,7 +85,14 @@ try:
                     save_dir=result_dir,
                     fold_indices=fold_indices
                     )
-    val_score = runner.run_train_cv()
+    val_score, oof_preds = runner.run_train_cv()
+    if config['task'] == 'regression':
+        optR = OptimizedRounder()
+        optR.fit(oof_preds, y)
+        best_coef = optR.coefficients()
+        logger.debug(f'best threshold: {best_coef}')
+        oof_preds = optR.predict(oof_preds, best_coef)
+        val_score = metrics.qwk(oof_preds, y)
 
     logger.debug('-' * 30)
     logger.debug(f'OOF QWK: {val_score}')
@@ -96,8 +103,7 @@ try:
     runner.run_train_all()
     preds = runner.run_predict_all(X_test[all_features])
     if config['task'] == 'regression':
-        optR = OptimizedRounder()
-        preds = optR.predict(preds, optR.coef_)
+        preds = optR.predict(preds, best_coef)
     save_path = result_dir / f'submission_val{val_score:.5f}.csv'
     if utils.ON_KAGGLE:
         save_path = 'submission.csv'
