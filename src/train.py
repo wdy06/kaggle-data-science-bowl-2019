@@ -102,6 +102,7 @@ try:
     X_test = features.generate_features(test.main_df, win_code, mode='test')
     runner.run_train_all()
     preds = runner.run_predict_all(X_test[all_features])
+    # preds = runner.run_predict_cv(X_test[all_features])
     if config['task'] == 'regression':
         preds = optR.predict(preds, best_coef)
     save_path = result_dir / f'submission_val{val_score:.5f}.csv'

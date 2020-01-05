@@ -37,13 +37,21 @@ class Runner:
             val_x = self.x.iloc[val_idx]
             val_y = self.y.iloc[val_idx]
             model, y_pred = self.train(train_x, train_y, val_x, val_y)
-            model.save_model(self.save_dir / f'model_fold{i_fold}.pkl')
+            model.save_model(
+                self.save_dir / f'{self.run_name}_fold{i_fold}.pkl')
             oof_preds[val_idx] = y_pred
         oof_score = self.metrics(self.y, oof_preds)
         return oof_score, oof_preds
 
-    def run_predict_cv(self):
-        pass
+    def run_predict_cv(self, test_x):
+        preds = np.zeros(len(test_x))
+        for i_fold, _ in enumerate(self.fold_indeices):
+            model = self.build_model()
+            model.load_model(
+                self.save_dir / f'{self.run_name}_fold{i_fold}.pkl')
+            preds += model.predict(test_x)
+        preds /= len(self.fold_indeices)
+        return preds
 
     def run_train_all(self):
         model, _ = self.train(self.x, self.y)
