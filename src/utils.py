@@ -19,6 +19,7 @@ BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent
 CONFIG_DIR = BASE_DIR / 'configs'
 DATA_DIR = Path(
     '../input/data-science-bowl-2019/') if ON_KAGGLE else BASE_DIR / 'data' / 'original'
+FEATURE_DIR = BASE_DIR / 'features'
 RESULTS_BASE_DIR = Path('.') if ON_KAGGLE else BASE_DIR / 'results'
 # RESULTS_BASE_DIR = BASE_DIR / 'results'
 
@@ -92,3 +93,19 @@ def make_win_code(activities_map):
                         (4100*np.ones(len(activities_map))).astype('int')))
     win_code[activities_map['Bird Measurer (Assessment)']] = 411
     return win_code
+
+
+def get_accuracy_group(true_attempts, false_attempts):
+    accuracy = true_attempts / \
+        (true_attempts + false_attempts) if (true_attempts + false_attempts) != 0 else 0
+    accuracy_group = None
+    if accuracy == 0:
+        accuracy_group = 0
+    elif accuracy == 1:
+        accuracy_group = 3
+    elif accuracy == 0.5:
+        accuracy_group = 2
+    else:
+        accuracy_group = 1
+
+    return accuracy_group, accuracy

@@ -1,6 +1,13 @@
+import argparse
+import os
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+
+import accumulators
+import utils
+from dataset import DSB2019Dataset
 
 
 def get_data(user_sample, win_code, test_set=False):
@@ -98,3 +105,94 @@ def generate_features(df, win_code, mode):
     for i, (ins_id, user_sample) in tqdm(enumerate(df.groupby('installation_id', sort=False)), total=total):
         compiled_data += get_data(user_sample, win_code, test_set)
     return pd.DataFrame(compiled_data)
+
+
+def generate_features_by_acc(df, win_code, mode):
+    if mode == 'train':
+        total = 17000
+        is_test = False
+    elif mode == 'test':
+        total = 1000
+        is_test = True
+    else:
+        raise ValueError('mode must be train or test.')
+    user_acc = accumulators.UserStatsAcc(win_code, is_test)
+    compiled_feature = []
+    for i, (ins_id, user_sample) in tqdm(enumerate(df.groupby('installation_id', sort=False)), total=total):
+        user_feature = []
+        for k in range(len(user_sample)):
+            row = user_sample.iloc[k].to_dict()
+            # if is_test:
+            #     print(row['installation_id'], row['game_session'], row['title'],
+            #           row['type'], row['end_of_game'])
+            if user_acc.is_labeled_timing(row):
+                feature_dict = user_acc.get_stats(row)
+                feature_dict.update(user_acc.assessment_acc.get_stats(row))
+                user_feature.append(feature_dict)
+            user_acc.update_acc(row)
+        if mode == 'train':
+            compiled_feature += user_feature
+        elif mode == 'test':
+            compiled_feature += [user_feature[-1]]
+    return compiled_feature
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='feature generator')
+    parser.add_argument("--debug", help="run debug mode",
+                        action="store_true")
+    args = parser.parse_args()
+
+    if args.debug:
+        print('running debug mode ...')
+    print('loading dataset ...')
+    train = DSB2019Dataset(mode='train', debug=args.debug)
+    test = DSB2019Dataset(mode='test')
+    print('preprocessing ...')
+    # encode title
+    activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
+    train.main_df['title'] = train.main_df['title'].map(activities_map)
+    test.main_df['title'] = test.main_df['title'].map(activities_map)
+    train.train_labels['title'] = train.train_labels['title'].map(
+        activities_map)
+
+    win_code = utils.make_win_code(activities_map)
+
+    train.main_df['timestamp'] = pd.to_datetime(train.main_df['timestamp'])
+    test.main_df['timestamp'] = pd.to_datetime(test.main_df['timestamp'])
+
+    train.main_df.sort_values(['installation_id', 'timestamp'], inplace=True)
+    test.main_df.sort_values(['installation_id', 'timestamp'], inplace=True)
+
+    train.main_df['end_of_game'] = train.main_df['game_session'].ne(
+        train.main_df['game_session'].shift(-1).ffill())
+    test.main_df['end_of_game'] = test.main_df['game_session'].ne(
+        test.main_df['game_session'].shift(-1).ffill())
+
+    train_feature = generate_features_by_acc(
+        train.main_df, win_code, mode='train')
+    train_feature = pd.DataFrame(train_feature)
+    print(f'train shape: {train_feature.shape}')
+
+    test_feature = generate_features_by_acc(
+        test.main_df, win_code, mode='test')
+    test_feature = pd.DataFrame(test_feature)
+    print(f'test shape: {test_feature.shape}')
+
+    if not os.path.exists(utils.FEATURE_DIR):
+        os.makedirs(utils.FEATURE_DIR)
+
+    if args.debug:
+        utils.dump_pickle(train_feature, utils.FEATURE_DIR /
+                          'train_features_debug.pkl')
+        utils.dump_pickle(test_feature, utils.FEATURE_DIR /
+                          'test_features_debug.pkl')
+    else:
+        utils.dump_pickle(train_feature, utils.FEATURE_DIR /
+                          'train_features.pkl')
+        utils.dump_pickle(test_feature, utils.FEATURE_DIR /
+                          'test_features.pkl')
+
+    print('save features !')
+    print('finish !!!')
