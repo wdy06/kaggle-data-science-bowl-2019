@@ -55,11 +55,11 @@ class Runner:
 
     def run_train_all(self):
         model, _ = self.train(self.x, self.y)
-        model.save_model(self.save_dir / 'model_all.pkl')
+        model.save_model(self.save_dir / f'{self.run_name}_all.pkl')
 
     def run_predict_all(self, test_x):
         model = self.build_model()
-        model.load_model(self.save_dir / 'model_all.pkl')
+        model.load_model(self.save_dir / f'{self.run_name}_all.pkl')
         preds = model.predict(test_x)
         return preds
 

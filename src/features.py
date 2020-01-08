@@ -134,7 +134,7 @@ def generate_features_by_acc(df, win_code, mode):
             compiled_feature += user_feature
         elif mode == 'test':
             compiled_feature += [user_feature[-1]]
-    return compiled_feature
+    return pd.DataFrame(compiled_feature)
 
 
 if __name__ == '__main__':
@@ -172,12 +172,12 @@ if __name__ == '__main__':
 
     train_feature = generate_features_by_acc(
         train.main_df, win_code, mode='train')
-    train_feature = pd.DataFrame(train_feature)
+    # train_feature = pd.DataFrame(train_feature)
     print(f'train shape: {train_feature.shape}')
 
     test_feature = generate_features_by_acc(
         test.main_df, win_code, mode='test')
-    test_feature = pd.DataFrame(test_feature)
+    # test_feature = pd.DataFrame(test_feature)
     print(f'test shape: {test_feature.shape}')
 
     if not os.path.exists(utils.FEATURE_DIR):

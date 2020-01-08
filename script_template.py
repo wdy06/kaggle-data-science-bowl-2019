@@ -22,5 +22,7 @@ def run(command):
 
 print(os.environ)
 
+dataset_path = '/kaggle/input/'
+
 run('python setup.py develop --install-dir /kaggle/working')
-run('python src/train.py')
+run(f'python src/predict.py --input-dir {dataset_path}')
