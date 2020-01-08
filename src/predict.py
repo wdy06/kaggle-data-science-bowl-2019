@@ -27,44 +27,16 @@ print(utils.DATA_DIR)
 print(utils.RESULTS_BASE_DIR)
 
 
-# result_dir = utils.RESULTS_BASE_DIR / \
-#     utils.make_experiment_name(args.debug)
-# os.mkdir(result_dir)
-
-# logger = mylogger.get_mylogger(filename=result_dir / 'log')
-# logger.debug(f'created: {result_dir}')
-# logger.debug('loading data ...')
 input_dir = Path(args.input_dir)
 print(f'input dir: {input_dir}')
 print('loading data ...')
 
-# train = DSB2019Dataset(mode='train', debug=args.debug)
-# test = DSB2019Dataset(mode='test')
-
-# logger.debug('preprocessing ...')
-# train = preprocess.preprocess_dataset(train)
-# test = preprocess.preprocess_dataset(test)
-# encode title
-# activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
-# train.main_df['title'] = train.main_df['title'].map(activities_map)
-# test.main_df['title'] = test.main_df['title'].map(activities_map)
-# train.train_labels['title'] = train.train_labels['title'].map(
-#     activities_map)
-
-# win_code = utils.make_win_code(activities_map)
-
-# train.main_df['timestamp'] = pd.to_datetime(train.main_df['timestamp'])
-# test.main_df['timestamp'] = pd.to_datetime(test.main_df['timestamp'])
-
-# new_train = features.generate_features(
-#     train.main_df, win_code, mode='train')
 train_feat_path = utils.FEATURE_DIR / 'train_features.pkl'
 test_feat_path = utils.FEATURE_DIR / 'test_features.pkl'
 if args.debug:
     train_feat_path = utils.FEATURE_DIR / 'train_features_debug.pkl'
     test_feat_path = utils.FEATURE_DIR / 'test_features_debug.pkl'
 
-# new_train = utils.load_pickle(train_feat_path)
 
 features_list = utils.load_yaml(input_dir / 'features_list.yml')
 all_features = features_list['features']
@@ -78,12 +50,6 @@ model_params = config['model_params']
 model_params['categorical_feature'] = features_list['categorical_features']
 
 
-# oof = np.zeros(len(X))
-# NFOLDS = 5
-# folds = StratifiedKFold(n_splits=NFOLDS, shuffle=True, random_state=2019)
-
-# training_start_time = time()
-# fold_indices = list(folds.split(X, y))
 runner = Runner(run_name='train_cv',
                 x=None,
                 y=None,

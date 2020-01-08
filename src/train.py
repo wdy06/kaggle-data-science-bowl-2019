@@ -34,26 +34,6 @@ try:
     logger.debug(f'created: {result_dir}')
     logger.debug('loading data ...')
 
-    # train = DSB2019Dataset(mode='train', debug=args.debug)
-    # test = DSB2019Dataset(mode='test')
-
-    # logger.debug('preprocessing ...')
-    # train = preprocess.preprocess_dataset(train)
-    # test = preprocess.preprocess_dataset(test)
-    # encode title
-    # activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
-    # train.main_df['title'] = train.main_df['title'].map(activities_map)
-    # test.main_df['title'] = test.main_df['title'].map(activities_map)
-    # train.train_labels['title'] = train.train_labels['title'].map(
-    #     activities_map)
-
-    # win_code = utils.make_win_code(activities_map)
-
-    # train.main_df['timestamp'] = pd.to_datetime(train.main_df['timestamp'])
-    # test.main_df['timestamp'] = pd.to_datetime(test.main_df['timestamp'])
-
-    # new_train = features.generate_features(
-    #     train.main_df, win_code, mode='train')
     train_feat_path = utils.FEATURE_DIR / 'train_features.pkl'
     test_feat_path = utils.FEATURE_DIR / 'test_features.pkl'
     if args.debug:
@@ -110,7 +90,6 @@ try:
     logger.debug('-' * 30)
 
     # process test set
-    # X_test = features.generate_features(test.main_df, win_code, mode='test')
     X_test = utils.load_pickle(test_feat_path)
     runner.run_train_all()
     preds = runner.run_predict_all(X_test[all_features])
