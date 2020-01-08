@@ -8,6 +8,7 @@ from tqdm import tqdm
 import accumulators
 import utils
 from dataset import DSB2019Dataset
+import preprocess
 
 
 def get_data(user_sample, win_code, test_set=False):
@@ -150,34 +151,19 @@ if __name__ == '__main__':
     train = DSB2019Dataset(mode='train', debug=args.debug)
     test = DSB2019Dataset(mode='test')
     print('preprocessing ...')
-    # encode title
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
-    train.main_df['title'] = train.main_df['title'].map(activities_map)
-    test.main_df['title'] = test.main_df['title'].map(activities_map)
-    train.train_labels['title'] = train.train_labels['title'].map(
-        activities_map)
+    train = preprocess.preprocess_dataset(train)
+    test = preprocess.preprocess_dataset(test)
 
     win_code = utils.make_win_code(activities_map)
 
-    train.main_df['timestamp'] = pd.to_datetime(train.main_df['timestamp'])
-    test.main_df['timestamp'] = pd.to_datetime(test.main_df['timestamp'])
-
-    train.main_df.sort_values(['installation_id', 'timestamp'], inplace=True)
-    test.main_df.sort_values(['installation_id', 'timestamp'], inplace=True)
-
-    train.main_df['end_of_game'] = train.main_df['game_session'].ne(
-        train.main_df['game_session'].shift(-1).ffill())
-    test.main_df['end_of_game'] = test.main_df['game_session'].ne(
-        test.main_df['game_session'].shift(-1).ffill())
 
     train_feature = generate_features_by_acc(
         train.main_df, win_code, mode='train')
-    # train_feature = pd.DataFrame(train_feature)
     print(f'train shape: {train_feature.shape}')
 
     test_feature = generate_features_by_acc(
         test.main_df, win_code, mode='test')
-    # test_feature = pd.DataFrame(test_feature)
     print(f'test shape: {test_feature.shape}')
 
     if not os.path.exists(utils.FEATURE_DIR):
