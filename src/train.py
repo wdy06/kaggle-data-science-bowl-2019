@@ -61,11 +61,19 @@ try:
         model_params['gpu_device_id'] = 0
 
     oof = np.zeros(len(X))
-    NFOLDS = 5
-    folds = StratifiedKFold(n_splits=NFOLDS, shuffle=True, random_state=2019)
+    # NFOLDS = 5
+    # folds = StratifiedKFold(n_splits=NFOLDS, shuffle=True, random_state=2019)
+    new_train.reset_index(inplace=True)
+    fold_indices = []
+    for i_fold in new_train.fold.unique():
+        train_idx = new_train.index[new_train['fold'] != i_fold].tolist()
+        val_idx = new_train.index[new_train['fold'] == i_fold].tolist()
+        fold_indices.append((train_idx, val_idx))
+        print(len(train_idx), len(val_idx))
+    utils.dump_pickle(fold_indices, result_dir / 'fold_indices.pkl')
 
     training_start_time = time()
-    fold_indices = list(folds.split(X, y))
+    # fold_indices = list(folds.split(X, y))
     runner = Runner(run_name='train_cv',
                     x=X[all_features],
                     y=y,

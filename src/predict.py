@@ -49,6 +49,7 @@ print(config)
 model_params = config['model_params']
 model_params['categorical_feature'] = features_list['categorical_features']
 
+fold_indices = utils.load_pickle(input_dir / 'fold_indices.pkl')
 
 runner = Runner(run_name='train_cv',
                 x=None,
@@ -57,7 +58,7 @@ runner = Runner(run_name='train_cv',
                 params=model_params,
                 metrics=metrics.qwk,
                 save_dir=input_dir,
-                fold_indices=None
+                fold_indices=fold_indices
                 )
 
 # process test set
@@ -71,8 +72,8 @@ if utils.ON_KAGGLE:
 else:
     X_test = utils.load_pickle(test_feat_path)
 
-preds = runner.run_predict_all(X_test[all_features])
-# preds = runner.run_predict_cv(X_test[all_features])
+# preds = runner.run_predict_all(X_test[all_features])
+preds = runner.run_predict_cv(X_test[all_features])
 if config['task'] == 'regression':
     optR = OptimizedRounder()
     best_coef = utils.load_pickle(input_dir / 'best_coef.pkl')

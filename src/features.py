@@ -8,6 +8,7 @@ from tqdm import tqdm
 import accumulators
 import utils
 from dataset import DSB2019Dataset
+import create_folds
 import preprocess
 
 
@@ -128,6 +129,9 @@ def generate_features_by_acc(df, win_code, mode):
             #           row['type'], row['end_of_game'])
             if user_acc.is_labeled_timing(row):
                 feature_dict = user_acc.get_stats(row)
+                if mode == 'train':
+                    # add fold info
+                    feature_dict['fold'] = row['fold']
                 feature_dict.update(user_acc.assessment_acc.get_stats(row))
                 user_feature.append(feature_dict)
             user_acc.update_acc(row)
@@ -145,6 +149,8 @@ if __name__ == '__main__':
                         action="store_true")
     args = parser.parse_args()
 
+    NFOLDS = 5
+
     if args.debug:
         print('running debug mode ...')
     print('loading dataset ...')
@@ -155,8 +161,10 @@ if __name__ == '__main__':
     train = preprocess.preprocess_dataset(train)
     test = preprocess.preprocess_dataset(test)
 
-    win_code = utils.make_win_code(activities_map)
+    # create folds
+    train.main_df = create_folds.create_folds(train.main_df, NFOLDS)
 
+    win_code = utils.make_win_code(activities_map)
 
     train_feature = generate_features_by_acc(
         train.main_df, win_code, mode='train')
