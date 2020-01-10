@@ -6,11 +6,12 @@ import utils
 
 
 class UserStatsAcc:
-    def __init__(self, win_code, is_test):
+    def __init__(self, win_code, event_code_list, is_test):
         super().__init__()
         self.assessment_acc = AssessmentAcc(win_code)
         self.session_acc = SessionAcc()
         self.win_code = win_code
+        self.event_code_list = event_code_list
         self.user_activities_count = defaultdict(lambda: defaultdict(int))
         self.last_session_id = defaultdict(lambda: None)
         self.last_activity = defaultdict(int)
@@ -27,6 +28,8 @@ class UserStatsAcc:
         if session_id != self.last_session_id.get(ins_id):
             self.user_activities_count[ins_id][session_type] += 1
         self.user_activities_count[ins_id]['all_actions_count'] += 1
+        self.user_activities_count[ins_id][f'event_code{row["event_code"]}_count'] += 1
+        self.user_activities_count[ins_id][f'title{row["title"]}_event{row["event_code"]}_count'] += 1
         self.last_session_id[ins_id] = session_id
         self.last_activity[ins_id] = session_type
         self.last_title[ins_id] = row['title']
@@ -34,6 +37,7 @@ class UserStatsAcc:
         self.last_time[ins_id] = row['timestamp']
         if row['end_of_game']:
             self.user_activities_count[ins_id]['game_count'] += 1
+            self.user_activities_count[ins_id][f'title{row["title"]}_count'] += 1
         # update chile accumulators
         self.assessment_acc.update_acc(row)
         self.session_acc.update_acc(row)
@@ -80,6 +84,16 @@ class UserStatsAcc:
             output['duration_mean'] = 0
         else:
             output['duration_mean'] = np.mean(self.durations[ins_id])
+
+        for title in self.win_code.keys():
+            output[f'title{title}_count'] = self.user_activities_count[ins_id][f'title{title}_count']
+        for event_code in self.event_code_list:
+            output[f'event_code{event_code}_count'] = self.user_activities_count[ins_id][f'event_code{event_code}_count']
+            # print(output[f'event_code{event_code}_count'])
+        # print(self.user_activities_count)
+        # print(output)
+        # output[f'title{title}_event{event_code}_count'] = self.user_activities_count[ins_id][f'title{row["title"]}_event{row["event_code"]}_count']
+
         return output
 
     def is_evaluate_timing(self, row, ass_stats):

@@ -38,6 +38,8 @@ if args.debug:
     test_feat_path = utils.FEATURE_DIR / 'test_features_debug.pkl'
 
 
+train = DSB2019Dataset(mode='train')
+event_code_list = list(train.main_df.event_code.unique())
 features_list = utils.load_yaml(input_dir / 'features_list.yml')
 all_features = features_list['features']
 print(all_features)
@@ -68,7 +70,7 @@ if utils.ON_KAGGLE:
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
     win_code = utils.make_win_code(activities_map)
     X_test = features.generate_features_by_acc(
-        test.main_df, win_code, mode='test')
+        test.main_df, win_code, event_code_list ,mode='test')
 else:
     X_test = utils.load_pickle(test_feat_path)
 
