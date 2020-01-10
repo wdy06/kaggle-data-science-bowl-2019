@@ -20,6 +20,11 @@ class UserStatsAcc:
         self.last_time = {}
         self.durations = defaultdict(list)
         self.is_test = is_test
+        self.title_event_feat_name = []
+        self.title_event_feat_name += [
+            f'title{title}_count' for title in self.win_code.keys()]
+        self.title_event_feat_name += [
+            f'event_code{event_code}_count' for event_code in self.event_code_list]
 
     def update_acc(self, row):
         ins_id = row['installation_id']
@@ -85,14 +90,8 @@ class UserStatsAcc:
         else:
             output['duration_mean'] = np.mean(self.durations[ins_id])
 
-        for title in self.win_code.keys():
-            output[f'title{title}_count'] = self.user_activities_count[ins_id][f'title{title}_count']
-        for event_code in self.event_code_list:
-            output[f'event_code{event_code}_count'] = self.user_activities_count[ins_id][f'event_code{event_code}_count']
-            # print(output[f'event_code{event_code}_count'])
-        # print(self.user_activities_count)
-        # print(output)
-        # output[f'title{title}_event{event_code}_count'] = self.user_activities_count[ins_id][f'title{row["title"]}_event{row["event_code"]}_count']
+        for feat_name in self.title_event_feat_name:
+            output[feat_name] = self.user_activities_count[ins_id][feat_name]
 
         return output
 
