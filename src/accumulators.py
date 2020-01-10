@@ -8,10 +8,15 @@ import utils
 class UserStatsAcc:
     def __init__(self, win_code, event_code_list, is_test):
         super().__init__()
-        self.assessment_acc = AssessmentAcc(win_code)
-        self.session_acc = SessionAcc()
         self.win_code = win_code
         self.event_code_list = event_code_list
+        self.title_event_feat_name = []
+        self.title_event_feat_name += [
+            f'title{title}_count' for title in self.win_code.keys()]
+        self.title_event_feat_name += [
+            f'event_code{event_code}_count' for event_code in self.event_code_list]
+        self.assessment_acc = AssessmentAcc(win_code)
+        self.session_acc = SessionAcc(self.title_event_feat_name)
         self.user_activities_count = defaultdict(lambda: defaultdict(int))
         self.last_session_id = defaultdict(lambda: None)
         self.last_activity = defaultdict(int)
@@ -20,11 +25,6 @@ class UserStatsAcc:
         self.last_time = {}
         self.durations = defaultdict(list)
         self.is_test = is_test
-        self.title_event_feat_name = []
-        self.title_event_feat_name += [
-            f'title{title}_count' for title in self.win_code.keys()]
-        self.title_event_feat_name += [
-            f'event_code{event_code}_count' for event_code in self.event_code_list]
 
     def update_acc(self, row):
         ins_id = row['installation_id']
@@ -33,25 +33,23 @@ class UserStatsAcc:
         if session_id != self.last_session_id.get(ins_id):
             self.user_activities_count[ins_id][session_type] += 1
         self.user_activities_count[ins_id]['all_actions_count'] += 1
-        self.user_activities_count[ins_id][f'event_code{row["event_code"]}_count'] += 1
-        self.user_activities_count[ins_id][f'title{row["title"]}_event{row["event_code"]}_count'] += 1
         self.last_session_id[ins_id] = session_id
         self.last_activity[ins_id] = session_type
         self.last_title[ins_id] = row['title']
         self.last_world[ins_id] = row['world']
         self.last_time[ins_id] = row['timestamp']
-        if row['end_of_game']:
-            self.user_activities_count[ins_id]['game_count'] += 1
-            self.user_activities_count[ins_id][f'title{row["title"]}_count'] += 1
         # update chile accumulators
         self.assessment_acc.update_acc(row)
         self.session_acc.update_acc(row)
         ass_stats = self.assessment_acc.get_stats(row)
         session_stats = self.session_acc.get_stats(row)
-        # self.is_evaluate_timing = (session_type == 'Assessment') and (row['end_of_game']) \
-        #     and (ass_stats['step_count_in_game'] > 1)
         # print(ins_id, row['game_session'], session_type, row['end_of_game'],
         #       session_stats['step_count_in_game'], self.is_evaluate_timing)
+        if row['end_of_game']:
+            self.user_activities_count[ins_id]['game_count'] += 1
+            self.user_activities_count[ins_id][f'title{row["title"]}_count'] += 1
+            for feat_name in self.title_event_feat_name:
+                self.user_activities_count[ins_id][feat_name] += session_stats[feat_name]
         if self.is_evaluate_timing(row, ass_stats):
             self.user_activities_count[ins_id]['evaluate_count'] += 1
             self.user_activities_count[ins_id]['true_attempts_count'] += ass_stats['true_attempts_count']
@@ -154,14 +152,18 @@ class AssessmentAcc:
 
 
 class SessionAcc:
-    def __init__(self):
+    def __init__(self, title_event_feat_name_list):
         super().__init__()
         self.acc = defaultdict(lambda: defaultdict(list))
+        self.event_counter = defaultdict(lambda: defaultdict(int))
+        self.title_event_feat_name_list = title_event_feat_name_list
 
     def update_acc(self, row):
         key = (row['installation_id'], row['game_session'])
         timestamp = row['timestamp']
         self.acc[key]['time'].append(timestamp)
+        self.event_counter[key][f'event_code{row["event_code"]}_count'] += 1
+        self.event_counter[key][f'title{row["title"]}_event{row["event_code"]}_count'] += 1
 
     def get_stats(self, row):
         key = (row['installation_id'], row['game_session'])
@@ -169,5 +171,7 @@ class SessionAcc:
         time_list = self.acc[key]['time']
         output['session_time_length'] = (
             time_list[-1] - time_list[0]).seconds if len(time_list) > 0 else 0
+        for feat_name in self.title_event_feat_name_list:
+            output[feat_name] = self.event_counter[key][feat_name]
 
         return output
