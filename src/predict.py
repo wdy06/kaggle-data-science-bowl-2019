@@ -1,5 +1,7 @@
 import argparse
+import gc
 import os
+from pathlib import Path
 from time import time
 
 import numpy as np
@@ -11,7 +13,6 @@ import metrics
 import mylogger
 import preprocess
 import utils
-from pathlib import Path
 from dataset import DSB2019Dataset
 from optimizedrounder import OptimizedRounder
 from runner import Runner
@@ -40,6 +41,10 @@ if args.debug:
 
 train = DSB2019Dataset(mode='train')
 event_code_list = list(train.main_df.event_code.unique())
+
+del train
+gc.collect()
+
 features_list = utils.load_yaml(input_dir / 'features_list.yml')
 all_features = features_list['features']
 print(all_features)
@@ -70,12 +75,16 @@ if utils.ON_KAGGLE:
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
     win_code = utils.make_win_code(activities_map)
     X_test = features.generate_features_by_acc(
-        test.main_df, win_code, event_code_list ,mode='test')
+        test.main_df, win_code, event_code_list, mode='test')
+    del test
+    gc.collect()
 else:
     X_test = utils.load_pickle(test_feat_path)
 
-# preds = runner.run_predict_all(X_test[all_features])
-preds = runner.run_predict_cv(X_test[all_features])
+
+X_test = X_test[all_features]
+# preds = runner.run_predict_all(X_test)
+preds = runner.run_predict_cv(X_test)
 if config['task'] == 'regression':
     optR = OptimizedRounder()
     best_coef = utils.load_pickle(input_dir / 'best_coef.pkl')
