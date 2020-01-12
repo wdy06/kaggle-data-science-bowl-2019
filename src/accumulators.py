@@ -65,6 +65,10 @@ class UserStatsAcc:
             #     self.user_activities_count[ins_id][feat_name] += session_stats[feat_name]
             self.event_code_counter[ins_id].update(
                 self.session_acc.get_event_count(row))
+
+            # delete data for memory usage
+            self.session_acc.delete_data(row)
+
         if self.is_evaluate_timing(row, ass_stats):
             self.user_activities_count[ins_id]['evaluate_count'] += 1
             self.user_activities_count[ins_id]['true_attempts_count'] += ass_stats['true_attempts_count']
@@ -199,3 +203,7 @@ class SessionAcc:
         output = dict(self.event_counter[key])
 
         return output
+
+    def delete_data(self, row):
+        key = (row['installation_id'], row['game_session'])
+        del self.event_counter[key]
