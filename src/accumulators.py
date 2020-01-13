@@ -7,13 +7,15 @@ import utils
 
 
 class UserStatsAcc:
-    def __init__(self, win_code, event_code_list, is_test):
+    def __init__(self, win_code, event_code_list, event_id_list, is_test):
         super().__init__()
         self.win_code = win_code
         self.event_code_list = event_code_list
+        self.event_id_list = event_id_list
         self.ass_title_list = [12, 21,  2, 18, 30]
         self.event_feat_name = []
         self.title_feat_name = []
+        # make feature name list
         for title in self.win_code.keys():
             self.title_feat_name.append(f'title{title}_count')
             for event_code in self.event_code_list:
@@ -21,6 +23,8 @@ class UserStatsAcc:
                     f'event_code{event_code}_count')
                 self.event_feat_name.append(
                     f'title{title}_event{event_code}_count')
+        self.event_feat_name += [
+            f'id_{event_id}' for event_id in self.event_id_list]
         self.event_code_counter = defaultdict(lambda: Counter(
             {feat_name: 0 for feat_name in self.event_feat_name}))
         self.title_couter = defaultdict(lambda: Counter(
@@ -119,6 +123,10 @@ class UserStatsAcc:
                 title_eval_count if title_eval_count > 0 else -1
             output[f'title{ass_title}_ave_accracy_group'] = self.user_activities_count[ins_id][
                 f'title{ass_title}_accumulated_accracy_group'] / title_eval_count if title_eval_count > 0 else -1
+            output[f'title{ass_title}_acc_group_0_count'] = self.user_activities_count[ins_id][f'title{ass_title}_acc_group_0_count']
+            output[f'title{ass_title}_acc_group_1_count'] = self.user_activities_count[ins_id][f'title{ass_title}_acc_group_1_count']
+            output[f'title{ass_title}_acc_group_2_count'] = self.user_activities_count[ins_id][f'title{ass_title}_acc_group_2_count']
+            output[f'title{ass_title}_acc_group_3_count'] = self.user_activities_count[ins_id][f'title{ass_title}_acc_group_3_count']
             output[f'title{ass_title}_last_acc_group'] = self.last_title_acc[ins_id][f'title{ass_title}_last_acc_group']
         if len(self.durations[ins_id]) == 0:
             output['duration_mean'] = 0
@@ -200,6 +208,7 @@ class SessionAcc:
         self.acc[key]['time'].append(timestamp)
         self.event_counter[key][f'event_code{row["event_code"]}_count'] += 1
         self.event_counter[key][f'title{row["title"]}_event{row["event_code"]}_count'] += 1
+        self.event_counter[key][f'id_{row["event_id"]}'] += 1
 
     def get_stats(self, row):
         key = (row['installation_id'], row['game_session'])

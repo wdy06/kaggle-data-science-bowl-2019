@@ -109,7 +109,7 @@ def generate_features(df, win_code, mode):
     return pd.DataFrame(compiled_data)
 
 
-def generate_features_by_acc(df, win_code, event_code_list, mode):
+def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode):
     if mode == 'train':
         total = 17000
         is_test = False
@@ -118,7 +118,7 @@ def generate_features_by_acc(df, win_code, event_code_list, mode):
         is_test = True
     else:
         raise ValueError('mode must be train or test.')
-    user_acc = accumulators.UserStatsAcc(win_code, event_code_list, is_test)
+    user_acc = accumulators.UserStatsAcc(win_code, event_code_list, event_id_list, is_test)
     compiled_feature = []
     for i, (ins_id, user_sample) in tqdm(enumerate(df.groupby('installation_id', sort=False)), total=total):
         user_feature = []
@@ -165,14 +165,15 @@ if __name__ == '__main__':
     train.main_df = create_folds.create_folds(train.main_df, NFOLDS)
 
     win_code = utils.make_win_code(activities_map)
-    event_code_list = train.main_df.event_code.unique()
+    event_code_list = list(train.main_df.event_code.unique())
+    event_id_list = list(train.main_df.event_id.unique())
 
     train_feature = generate_features_by_acc(
-        train.main_df, win_code, event_code_list, mode='train')
+        train.main_df, win_code, event_code_list, event_id_list, mode='train')
     print(f'train shape: {train_feature.shape}')
 
     test_feature = generate_features_by_acc(
-        test.main_df, win_code, event_code_list, mode='test')
+        test.main_df, win_code, event_code_list, event_id_list, mode='test')
     print(f'test shape: {test_feature.shape}')
 
     if not os.path.exists(utils.FEATURE_DIR):

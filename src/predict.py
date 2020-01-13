@@ -41,6 +41,7 @@ if args.debug:
 
 train = DSB2019Dataset(mode='train')
 event_code_list = list(train.main_df.event_code.unique())
+event_id_list = list(train.main_df.event_id.unique())
 
 del train
 gc.collect()
@@ -75,7 +76,7 @@ if utils.ON_KAGGLE:
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
     win_code = utils.make_win_code(activities_map)
     X_test = features.generate_features_by_acc(
-        test.main_df, win_code, event_code_list, mode='test')
+        test.main_df, win_code, event_code_list, event_id_list, mode='test')
     del test
     gc.collect()
 else:

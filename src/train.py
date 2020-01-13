@@ -42,7 +42,7 @@ try:
 
     new_train = utils.load_pickle(train_feat_path)
 
-    features_list = utils.load_yaml(utils.CONFIG_DIR / '504_features_list.yml')
+    features_list = utils.load_yaml(utils.CONFIG_DIR / '505_features_list.yml')
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
     all_features = features_list['features']
     logger.debug(all_features)
