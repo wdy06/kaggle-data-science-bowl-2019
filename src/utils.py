@@ -168,7 +168,7 @@ def make_activities_map(train, test):
 def make_win_code(activities_map):
     win_code = dict(zip(activities_map.values(),
                         (4100*np.ones(len(activities_map))).astype('int')))
-    win_code[activities_map['Bird Measurer (Assessment)']] = 411
+    win_code[activities_map['Bird Measurer (Assessment)']] = 4110
     return win_code
 
 
