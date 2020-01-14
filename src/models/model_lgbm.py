@@ -45,7 +45,7 @@ class ModelLGBMRegressor(Model):
             self.model.fit(train_x, train_y,
                            verbose=100, categorical_feature=cat_features)
         else:
-            if _params['boosting_type'] == 'dart':
+            if _params.get('boosting_type') == 'dart':
                 self.model.fit(train_x, train_y, eval_set=(valid_x, valid_y),
                                verbose=100, categorical_feature=cat_features)
             else:
