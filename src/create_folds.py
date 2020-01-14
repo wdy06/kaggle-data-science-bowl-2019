@@ -3,7 +3,7 @@ from sklearn.model_selection import KFold
 
 
 def create_folds(df, n_fold):
-    kf = KFold(n_splits=5)
+    kf = KFold(n_splits=5, shuffle=False)
     ins_id_list = df.installation_id.unique()
     df['fold'] = -1
     for i, (train_idx, val_idx) in enumerate(kf.split(ins_id_list)):
