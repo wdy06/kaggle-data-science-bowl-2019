@@ -255,37 +255,86 @@ class AssTitleAcc:
         session_type = row['type']
         session_title = row['title']
         if session_type == 'Assessment' and row['event_code'] == self.win_code[session_title]:
+            # if session_title == 30:
+            #     print(session_type, session_title)
+            #     print(self.acc)
             if 'true' in row['event_data']:
                 self.acc['tmp_true_attempts_count'] += 1
                 self.acc['tmp_attempts_count'] += 1
             elif 'false' in row['event_data']:
                 self.acc['tmp_false_attempts_count'] += 1
                 self.acc['tmp_attempts_count'] += 1
-        if row['end_of_game']:
-            true_attempts = self.acc['tmp_true_attempts_count']
-            false_attempts = self.acc['tmp_false_attempts_count']
-            attempts_count = self.acc['tmp_attempts_count']
-            accuracy_group, accuracy = utils.get_accuracy_group(true_attempts, false_attempts)
-            self.acc[f'all_title{session_title}_accuracy_list'].append(accuracy)
-            self.acc[f'all_title{session_title}_accuracy_group_list'].append(accuracy_group)
-            self.acc[f'all_title{session_title}_attempts_count_list'].append(attempts_count)
-            self.acc[f'all_title{ass_title}_duration_list'].append(row['game_time'] / 1000)
+        # if row['end_of_game'] and row['type'] == 'Assessment':
+            if row['end_of_game']:
+                true_attempts = self.acc['tmp_true_attempts_count']
+                false_attempts = self.acc['tmp_false_attempts_count']
+                attempts_count = self.acc['tmp_attempts_count']
+                accuracy_group, accuracy = utils.get_accuracy_group(
+                    true_attempts, false_attempts)
+                self.acc[f'all_title{session_title}_accuracy_list'].append(
+                    accuracy)
+                self.acc[f'all_title{session_title}_accuracy_group_list'].append(
+                    accuracy_group)
+                self.acc[f'all_title{session_title}_attempts_count_list'].append(
+                    attempts_count)
+                self.acc[f'all_title{session_title}_duration_list'].append(
+                    row['game_time'] / 1000)
 
-            # reset some counter
-            self.acc['tmp_true_attempts_count'] = 0
-            self.acc['tmp_false_attempts_count'] = 0
-            self.acc['tmp_attempts_count'] = 0
+                # reset some counter
+                # print('----------------------------')
+                self.acc['tmp_true_attempts_count'] = 0
+                self.acc['tmp_false_attempts_count'] = 0
+                self.acc['tmp_attempts_count'] = 0
 
     def get_stats(self):
         output = {}
         for ass_title in self.ass_title_list:
-            output[f'all_title{ass_title}_accuracy_mean'] = np.mean(self.acc[f'all_title{ass_title}_accuracy_list'])
-            output[f'all_title{ass_title}_accuracy_std'] = np.std(self.acc[f'all_title{ass_title}_accuracy_list'])
-            output[f'all_title{ass_title}_accuracy_group_mean'] = np.mean(self.acc[f'all_title{ass_title}_accuracy_group_list'])
-            output[f'all_title{ass_title}_accuracy_group_std'] = np.std(self.acc[f'all_title{ass_title}_accuracy_group_list'])
-            output[f'all_title{ass_title}_attempts_count_mean'] = np.mean(self.acc[f'all_title{ass_title}_attempts_count_list'])
-            output[f'all_title{ass_title}_attempts_count_std'] = np.std(self.acc[f'all_title{ass_title}_attempts_count_list'])
-            output[f'all_title{ass_title}_duration_mean'] = np.mean(self.acc[f'all_title{ass_title}_duration_list'])
-            output[f'all_title{ass_title}_duration_std'] = np.std(self.acc[f'all_title{ass_title}_duration_list'])
+            output[f'all_title{ass_title}_accuracy_mean'] = np.mean(
+                self.acc[f'all_title{ass_title}_accuracy_list'])
+            output[f'all_title{ass_title}_accuracy_std'] = np.std(
+                self.acc[f'all_title{ass_title}_accuracy_list'])
+            output[f'all_title{ass_title}_accuracy_group_mean'] = np.mean(
+                self.acc[f'all_title{ass_title}_accuracy_group_list'])
+            output[f'all_title{ass_title}_accuracy_group_std'] = np.std(
+                self.acc[f'all_title{ass_title}_accuracy_group_list'])
+            output[f'all_title{ass_title}_attempts_count_mean'] = np.mean(
+                self.acc[f'all_title{ass_title}_attempts_count_list'])
+            output[f'all_title{ass_title}_attempts_count_std'] = np.std(
+                self.acc[f'all_title{ass_title}_attempts_count_list'])
+            output[f'all_title{ass_title}_duration_mean'] = np.mean(
+                self.acc[f'all_title{ass_title}_duration_list'])
+            output[f'all_title{ass_title}_duration_std'] = np.std(
+                self.acc[f'all_title{ass_title}_duration_list'])
 
         return output
+
+    def get_mapper(self):
+        # title_stats = self.get_stats()
+        map_dict = {}
+        map_dict['user_accuracy_mean'] = {}
+        map_dict['user_accuracy_std'] = {}
+        map_dict['user_accuracy_group_mean'] = {}
+        map_dict['user_accuracy_group_std'] = {}
+        map_dict['user_attempts_count_mean'] = {}
+        map_dict['user_attempts_count_std'] = {}
+        map_dict['user_duration_mean'] = {}
+        map_dict['user_duration_std'] = {}
+        for title in self.ass_title_list:
+            map_dict['user_accuracy_mean'][title] = np.mean(
+                self.acc[f'all_title{title}_accuracy_list'])
+            map_dict['user_accuracy_std'][title] = np.std(
+                self.acc[f'all_title{title}_accuracy_list'])
+            map_dict['user_accuracy_group_mean'][title] = np.mean(
+                self.acc[f'all_title{title}_accuracy_group_list'])
+            map_dict['user_accuracy_group_std'][title] = np.std(
+                self.acc[f'all_title{title}_accuracy_group_list'])
+            map_dict['user_attempts_count_mean'][title] = np.mean(
+                self.acc[f'all_title{title}_attempts_count_list'])
+            map_dict['user_attempts_count_std'][title] = np.std(
+                self.acc[f'all_title{title}_attempts_count_list'])
+            map_dict['user_duration_mean'][title] = np.mean(
+                self.acc[f'all_title{title}_duration_list'])
+            map_dict['user_duration_std'][title] = np.std(
+                self.acc[f'all_title{title}_duration_list'])
+
+        return map_dict
