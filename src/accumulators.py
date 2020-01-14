@@ -36,7 +36,7 @@ class UserStatsAcc:
         self.last_activity = defaultdict(int)
         self.last_title = defaultdict(lambda: None)
         self.last_title_acc = defaultdict(lambda: defaultdict(lambda: -1))
-        self.last_world = {}
+        self.last_world = defaultdict(lambda: None)
         self.last_time = {}
         self.durations = defaultdict(list)
         self.is_test = is_test
@@ -51,8 +51,8 @@ class UserStatsAcc:
         self.user_activities_count[ins_id]['all_actions_count'] += 1
         self.last_session_id[ins_id] = session_id
         self.last_activity[ins_id] = session_type
-        self.last_title[ins_id] = session_title
-        self.last_world[ins_id] = row['world']
+        # self.last_title[ins_id] = session_title
+        # self.last_world[ins_id] = row['world']
         self.last_time[ins_id] = row['timestamp']
         # update chile accumulators
         self.assessment_acc.update_acc(row)
@@ -60,6 +60,8 @@ class UserStatsAcc:
         ass_stats = self.assessment_acc.get_stats(row)
         session_stats = self.session_acc.get_stats(row)
         if row['end_of_game']:
+            self.last_title[ins_id] = session_title
+            self.last_world[ins_id] = row['world']
             self.user_activities_count[ins_id]['game_count'] += 1
             self.title_couter[ins_id][f'title{session_title}_count'] += 1
             self.event_code_counter[ins_id].update(
@@ -95,6 +97,8 @@ class UserStatsAcc:
         output = dict(self.event_code_counter[ins_id])
         output.update(self.title_couter[ins_id])
         output['session_title'] = row['title']
+        output['last_title'] = self.last_title[ins_id]
+        output['last_world'] = self.last_world[ins_id]
         output['game_count'] = self.user_activities_count[ins_id]['game_count']
         output['Clip'] = self.user_activities_count[ins_id]['Clip']
         output['Activity'] = self.user_activities_count[ins_id]['Activity']
@@ -130,8 +134,10 @@ class UserStatsAcc:
             output[f'title{ass_title}_last_acc_group'] = self.last_title_acc[ins_id][f'title{ass_title}_last_acc_group']
         if len(self.durations[ins_id]) == 0:
             output['duration_mean'] = 0
+            output['duration_std'] = 0
         else:
             output['duration_mean'] = np.mean(self.durations[ins_id])
+            output['duration_std'] = np.std(self.durations[ins_id])
 
         return output
 
@@ -228,3 +234,58 @@ class SessionAcc:
     def delete_data(self, row):
         key = (row['installation_id'], row['game_session'])
         del self.event_counter[key]
+
+
+class AssTitleAcc:
+    def __init__(self, win_code):
+        super().__init__()
+        self.win_code = win_code
+        self.ass_title_list = [12, 21, 2, 18, 30]
+        self.acc = {}
+        for ass_title in self.ass_title_list:
+            self.acc[f'all_title{ass_title}_accuracy_list'] = []
+            self.acc[f'all_title{ass_title}_accuracy_group_list'] = []
+            self.acc[f'all_title{ass_title}_attempts_count_list'] = []
+            self.acc[f'all_title{ass_title}_duration_list'] = []
+        self.acc['tmp_true_attempts_count'] = 0
+        self.acc['tmp_false_attempts_count'] = 0
+        self.acc['tmp_attempts_count'] = 0
+
+    def update_acc(self, row):
+        session_type = row['type']
+        session_title = row['title']
+        if session_type == 'Assessment' and row['event_code'] == self.win_code[session_title]:
+            if 'true' in row['event_data']:
+                self.acc['tmp_true_attempts_count'] += 1
+                self.acc['tmp_attempts_count'] += 1
+            elif 'false' in row['event_data']:
+                self.acc['tmp_false_attempts_count'] += 1
+                self.acc['tmp_attempts_count'] += 1
+        if row['end_of_game']:
+            true_attempts = self.acc['tmp_true_attempts_count']
+            false_attempts = self.acc['tmp_false_attempts_count']
+            attempts_count = self.acc['tmp_attempts_count']
+            accuracy_group, accuracy = utils.get_accuracy_group(true_attempts, false_attempts)
+            self.acc[f'all_title{session_title}_accuracy_list'].append(accuracy)
+            self.acc[f'all_title{session_title}_accuracy_group_list'].append(accuracy_group)
+            self.acc[f'all_title{session_title}_attempts_count_list'].append(attempts_count)
+            self.acc[f'all_title{ass_title}_duration_list'].append(row['game_time'] / 1000)
+
+            # reset some counter
+            self.acc['tmp_true_attempts_count'] = 0
+            self.acc['tmp_false_attempts_count'] = 0
+            self.acc['tmp_attempts_count'] = 0
+
+    def get_stats(self):
+        output = {}
+        for ass_title in self.ass_title_list:
+            output[f'all_title{ass_title}_accuracy_mean'] = np.mean(self.acc[f'all_title{ass_title}_accuracy_list'])
+            output[f'all_title{ass_title}_accuracy_std'] = np.std(self.acc[f'all_title{ass_title}_accuracy_list'])
+            output[f'all_title{ass_title}_accuracy_group_mean'] = np.mean(self.acc[f'all_title{ass_title}_accuracy_group_list'])
+            output[f'all_title{ass_title}_accuracy_group_std'] = np.std(self.acc[f'all_title{ass_title}_accuracy_group_list'])
+            output[f'all_title{ass_title}_attempts_count_mean'] = np.mean(self.acc[f'all_title{ass_title}_attempts_count_list'])
+            output[f'all_title{ass_title}_attempts_count_std'] = np.std(self.acc[f'all_title{ass_title}_attempts_count_list'])
+            output[f'all_title{ass_title}_duration_mean'] = np.mean(self.acc[f'all_title{ass_title}_duration_list'])
+            output[f'all_title{ass_title}_duration_std'] = np.std(self.acc[f'all_title{ass_title}_duration_list'])
+
+        return output

@@ -118,7 +118,8 @@ def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode)
         is_test = True
     else:
         raise ValueError('mode must be train or test.')
-    user_acc = accumulators.UserStatsAcc(win_code, event_code_list, event_id_list, is_test)
+    user_acc = accumulators.UserStatsAcc(
+        win_code, event_code_list, event_id_list, is_test)
     compiled_feature = []
     for i, (ins_id, user_sample) in tqdm(enumerate(df.groupby('installation_id', sort=False)), total=total):
         user_feature = []
@@ -158,6 +159,7 @@ if __name__ == '__main__':
     test = DSB2019Dataset(mode='test')
     print('preprocessing ...')
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
+    # world_map = utils.load_json(utils.CONFIG_DIR / 'world_map.json')
     train = preprocess.preprocess_dataset(train)
     test = preprocess.preprocess_dataset(test)
 

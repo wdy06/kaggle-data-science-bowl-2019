@@ -165,6 +165,15 @@ def make_activities_map(train, test):
     return activities_map
 
 
+def make_world_map(train, test):
+    list_of_world = list(set(train.main_df['world'].value_counts(
+    ).index).union(set(test.main_df['world'].value_counts().index)))
+    world_map = dict(
+        zip(list_of_world, np.arange(len(list_of_world))))
+
+    return world_map
+
+
 def make_win_code(activities_map):
     win_code = dict(zip(activities_map.values(),
                         (4100*np.ones(len(activities_map))).astype('int')))
