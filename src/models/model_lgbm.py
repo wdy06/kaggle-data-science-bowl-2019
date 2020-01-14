@@ -45,9 +45,13 @@ class ModelLGBMRegressor(Model):
             self.model.fit(train_x, train_y,
                            verbose=100, categorical_feature=cat_features)
         else:
-            self.model.fit(train_x, train_y, eval_set=(valid_x, valid_y),
-                           verbose=100, early_stopping_rounds=100,
-                           categorical_feature=cat_features)
+            if _params['boosting_type'] == 'dart':
+                self.model.fit(train_x, train_y, eval_set=(valid_x, valid_y),
+                               verbose=100, categorical_feature=cat_features)
+            else:
+                self.model.fit(train_x, train_y, eval_set=(valid_x, valid_y),
+                               verbose=100, early_stopping_rounds=100,
+                               categorical_feature=cat_features)
 
     def predict(self, test_x):
         return self.model.predict(
