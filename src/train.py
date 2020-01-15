@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 from time import time
 
 import numpy as np
@@ -42,9 +43,14 @@ try:
 
     new_train = utils.load_pickle(train_feat_path)
 
-    features_list = utils.load_yaml(utils.CONFIG_DIR / '506_features_list.yml')
+    shutil.copyfile(utils.FEATURE_DIR / 'feature_mapper.json',
+                    result_dir / 'feature_mapper.json')
+    features_list = utils.load_yaml(utils.CONFIG_DIR / '507_features_list.yml')
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
     all_features = features_list['features']
+    if args.debug:
+        all_features = [
+            feat for feat in all_features if feat in new_train.columns]
     logger.debug(all_features)
     X, y = new_train[all_features], new_train['accuracy_group']
 
@@ -59,6 +65,7 @@ try:
         model_params['device'] = 'gpu'
         model_params['gpu_platform_id'] = 0
         model_params['gpu_device_id'] = 0
+        model_params['gpu_use_dp'] = True
 
     oof = np.zeros(len(X))
     # NFOLDS = 5
@@ -99,8 +106,8 @@ try:
 
     # process test set
     X_test = utils.load_pickle(test_feat_path)
-    runner.run_train_all()
-    preds = runner.run_predict_all(X_test[all_features])
+    # runner.run_train_all()
+    preds = runner.run_predict_cv(X_test[all_features])
     # preds = runner.run_predict_cv(X_test[all_features])
     if config['task'] == 'regression':
         preds = optR.predict(preds, best_coef)
