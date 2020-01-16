@@ -120,7 +120,7 @@ def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode)
         raise ValueError('mode must be train or test.')
     user_acc = accumulators.UserStatsAcc(
         win_code, event_code_list, event_id_list, is_test)
-    ass_title_acc = accumulators.AssTitleAcc(win_code)
+    # ass_title_acc = accumulators.AssTitleAcc(win_code)
     compiled_feature = []
     for i, (ins_id, user_sample) in tqdm(enumerate(df.groupby('installation_id', sort=False)), total=total):
         user_feature = []
@@ -134,18 +134,15 @@ def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode)
                 feature_dict.update(user_acc.assessment_acc.get_stats(row))
                 user_feature.append(feature_dict)
             user_acc.update_acc(row)
-            ass_title_acc.update_acc(row)
+            # ass_title_acc.update_acc(row)
         if mode == 'train':
             compiled_feature += user_feature
         elif mode == 'test':
             compiled_feature += [user_feature[-1]]
     compiled_feature = pd.DataFrame(compiled_feature)
-    feature_mapper = ass_title_acc.get_mapper()
-    # for feat_name in feature_mapper.keys():
-    #     compiled_feature[feat_name] = compiled_feature['session_title'].map(
-    #         feature_mapper[feat_name])
+    # feature_mapper = ass_title_acc.get_mapper()
     if mode == 'train':
-        return compiled_feature, feature_mapper
+        return compiled_feature
     else:
         return compiled_feature
 
@@ -188,22 +185,22 @@ if __name__ == '__main__':
     if not os.path.exists(utils.FEATURE_DIR):
         os.makedirs(utils.FEATURE_DIR)
 
-    train_feature, feature_mapper = generate_features_by_acc(
+    train_feature = generate_features_by_acc(
         train.main_df, win_code, event_code_list, event_id_list, mode='train')
-    for feat_name in feature_mapper.keys():
-        train_feature[feat_name] = train_feature['session_title'].map(
-            feature_mapper[feat_name])
+    # for feat_name in feature_mapper.keys():
+    #     train_feature[feat_name] = train_feature['session_title'].map(
+    #         feature_mapper[feat_name])
     print(f'train shape: {train_feature.shape}')
 
     utils.dump_pickle(train_feature, train_feat_path)
-    utils.dump_json(feature_mapper, feat_mapper_path)
+    # utils.dump_json(feature_mapper, feat_mapper_path)
 
     test_feature = generate_features_by_acc(
         test.main_df, win_code, event_code_list, event_id_list, mode='test')
 
-    for feat_name in feature_mapper.keys():
-        test_feature[feat_name] = test_feature['session_title'].map(
-            feature_mapper[feat_name])
+    # for feat_name in feature_mapper.keys():
+    #     test_feature[feat_name] = test_feature['session_title'].map(
+    #         feature_mapper[feat_name])
     print(f'test shape: {test_feature.shape}')
     utils.dump_pickle(test_feature, test_feat_path)
 

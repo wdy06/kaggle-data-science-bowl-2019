@@ -75,13 +75,13 @@ if utils.ON_KAGGLE:
     test = DSB2019Dataset(mode='test')
     test = preprocess.preprocess_dataset(test)
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
-    feature_mapper = utils.load_json(input_dir / 'feature_mapper.json')
+    # feature_mapper = utils.load_json(input_dir / 'feature_mapper.json')
     win_code = utils.make_win_code(activities_map)
     X_test = features.generate_features_by_acc(
         test.main_df, win_code, event_code_list, event_id_list, mode='test')
-    for feat_name in feature_mapper.keys():
-        X_test[feat_name] = X_test['session_title'].map(
-            feature_mapper[feat_name])
+    # for feat_name in feature_mapper.keys():
+    #     X_test[feat_name] = X_test['session_title'].map(
+    #         feature_mapper[feat_name])
     del test
     gc.collect()
 else:
