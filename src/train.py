@@ -13,10 +13,14 @@ import mylogger
 import preprocess
 import utils
 from dataset import DSB2019Dataset
-from optimizedrounder import OptimizedRounder
+from optimizedrounder import OptimizedRounder, HistBaseRounder
 from runner import Runner
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
+parser.add_argument("--config", "-c", type=str,
+                    required=True, help="config path")
+parser.add_argument("--high-corr", type=str,
+                    default=None, help="path to feature list to remove")
 parser.add_argument("--debug", help="run debug mode",
                     action="store_true")
 args = parser.parse_args()
@@ -51,11 +55,21 @@ try:
     if args.debug:
         all_features = [
             feat for feat in all_features if feat in new_train.columns]
-    logger.debug(all_features)
+
+    # remove high corr features
+    if args.high_corr:
+        logger.debug('remove high corr features')
+        remove_feat = utils.load_json(args.high_corr)
+        all_features = [
+            feat for feat in all_features if feat not in remove_feat]
+        features_list['features'] = all_features
+    # logger.debug(all_features)
+    logger.debug(f'features num: {len(all_features)}')
+    utils.dump_yaml(features_list, result_dir / 'features_list.yml')
+
     X, y = new_train[all_features], new_train['accuracy_group']
 
-    config_path = utils.CONFIG_DIR / '001_lgbm_regression.yml'
-    config = utils.load_yaml(config_path)
+    config = utils.load_yaml(args.config)
     logger.debug(config)
     utils.dump_yaml(config, result_dir / 'model_config.yml')
     model_params = config['model_params']
@@ -69,7 +83,6 @@ try:
 
     oof = np.zeros(len(X))
     # NFOLDS = 5
-    # folds = StratifiedKFold(n_splits=NFOLDS, shuffle=True, random_state=2019)
     new_train.reset_index(inplace=True)
     fold_indices = []
     for i_fold in new_train.fold.unique():
@@ -79,8 +92,6 @@ try:
         print(len(train_idx), len(val_idx))
     utils.dump_pickle(fold_indices, result_dir / 'fold_indices.pkl')
 
-    training_start_time = time()
-    # fold_indices = list(folds.split(X, y))
     runner = Runner(run_name='train_cv',
                     x=X[all_features],
                     y=y,
@@ -92,7 +103,9 @@ try:
                     )
     val_score, oof_preds = runner.run_train_cv()
     if config['task'] == 'regression':
-        optR = OptimizedRounder()
+        val_rmse = metrics.rmse(oof_preds, y)
+        # optR = OptimizedRounder()
+        optR = HistBaseRounder()
         optR.fit(oof_preds, y)
         best_coef = optR.coefficients()
         logger.debug(f'best threshold: {best_coef}')
@@ -101,14 +114,13 @@ try:
         val_score = metrics.qwk(oof_preds, y)
 
     logger.debug('-' * 30)
+    logger.debug(f'OOF RMSE: {val_rmse}')
     logger.debug(f'OOF QWK: {val_score}')
     logger.debug('-' * 30)
 
     # process test set
     X_test = utils.load_pickle(test_feat_path)
-    # runner.run_train_all()
     preds = runner.run_predict_cv(X_test[all_features])
-    # preds = runner.run_predict_cv(X_test[all_features])
     if config['task'] == 'regression':
         preds = optR.predict(preds, best_coef)
     save_path = result_dir / f'submission_val{val_score:.5f}.csv'
