@@ -14,7 +14,7 @@ import mylogger
 import preprocess
 import utils
 from dataset import DSB2019Dataset
-from optimizedrounder import OptimizedRounder
+from optimizedrounder import OptimizedRounder, HistBaseRounder
 from runner import Runner
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
@@ -49,6 +49,7 @@ gc.collect()
 features_list = utils.load_yaml(input_dir / 'features_list.yml')
 all_features = features_list['features']
 print(all_features)
+print(f'features num: {len(all_features)}')
 # X, y = new_train[all_features], new_train['accuracy_group']
 
 config_path = input_dir / 'model_config.yml'
@@ -74,20 +75,32 @@ if utils.ON_KAGGLE:
     test = DSB2019Dataset(mode='test')
     test = preprocess.preprocess_dataset(test)
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
+    feature_mapper = utils.load_json(input_dir / 'feature_mapper.json')
     win_code = utils.make_win_code(activities_map)
     X_test = features.generate_features_by_acc(
         test.main_df, win_code, event_code_list, event_id_list, mode='test')
+    for feat_name in feature_mapper.keys():
+        X_test[feat_name] = X_test['session_title'].map(
+            feature_mapper[feat_name])
     del test
     gc.collect()
 else:
     X_test = utils.load_pickle(test_feat_path)
 
+# adjust data
+if os.path.exists(input_dir / 'adjust.json'):
+    print('adjust !!!')
+    adjust_dict = utils.load_json(input_dir / 'adjust.json')
+    for key, factor in adjust_dict.items():
+        # print(f'{key}: {factor}')
+        X_test[key] *= factor
 
 X_test = X_test[all_features]
 # preds = runner.run_predict_all(X_test)
 preds = runner.run_predict_cv(X_test)
 if config['task'] == 'regression':
-    optR = OptimizedRounder()
+    # optR = OptimizedRounder()
+    optR = HistBaseRounder()
     best_coef = utils.load_pickle(input_dir / 'best_coef.pkl')
     preds = optR.predict(preds, best_coef)
 # save_path = result_dir / f'submission_val{val_score:.5f}.csv'

@@ -21,6 +21,8 @@ parser.add_argument("--config", "-c", type=str,
                     required=True, help="config path")
 parser.add_argument("--high-corr", type=str,
                     default=None, help="path to feature list to remove")
+parser.add_argument("--adjust", help="adjust train and test hist",
+                    action="store_true")
 parser.add_argument("--debug", help="run debug mode",
                     action="store_true")
 args = parser.parse_args()
@@ -46,12 +48,14 @@ try:
         test_feat_path = utils.FEATURE_DIR / 'test_features_debug.pkl'
 
     new_train = utils.load_pickle(train_feat_path)
+    X_test = utils.load_pickle(test_feat_path)
 
     shutil.copyfile(utils.FEATURE_DIR / 'feature_mapper.json',
                     result_dir / 'feature_mapper.json')
-    features_list = utils.load_yaml(utils.CONFIG_DIR / '507_features_list.yml')
+    features_list = utils.load_yaml(utils.CONFIG_DIR / '508_features_list.yml')
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
     all_features = features_list['features']
+    categorical_feat = features_list['categorical_features']
     if args.debug:
         all_features = [
             feat for feat in all_features if feat in new_train.columns]
@@ -63,6 +67,16 @@ try:
         all_features = [
             feat for feat in all_features if feat not in remove_feat]
         features_list['features'] = all_features
+
+    # adjust train and test
+    if args.adjust:
+        logger.debug('adjusting data ...')
+        new_train, _, X_test, to_exclude, adjust_dict = preprocess.adjust_data(
+            all_features, categorical_feat, new_train, X_test)
+        all_features = [
+            feat for feat in all_features if feat not in to_exclude]
+        features_list['features'] = all_features
+        utils.dump_json(adjust_dict, result_dir / 'adjust.json')
     # logger.debug(all_features)
     logger.debug(f'features num: {len(all_features)}')
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
@@ -73,9 +87,9 @@ try:
     logger.debug(config)
     utils.dump_yaml(config, result_dir / 'model_config.yml')
     model_params = config['model_params']
-    model_params['categorical_feature'] = features_list['categorical_features']
+    model_params['categorical_feature'] = categorical_feat
 
-    if not utils.ON_KAGGLE:
+    if not utils.ON_KAGGLE and config['model_class'] == 'ModelLGBMRegressor':
         model_params['device'] = 'gpu'
         model_params['gpu_platform_id'] = 0
         model_params['gpu_device_id'] = 0
@@ -119,7 +133,7 @@ try:
     logger.debug('-' * 30)
 
     # process test set
-    X_test = utils.load_pickle(test_feat_path)
+    # X_test = utils.load_pickle(test_feat_path)
     preds = runner.run_predict_cv(X_test[all_features])
     if config['task'] == 'regression':
         preds = optR.predict(preds, best_coef)
