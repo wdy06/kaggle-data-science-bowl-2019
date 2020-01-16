@@ -5,6 +5,7 @@ features/
 data/
 src/__pycache__
 src/models/__pycache__
+catboost_info/
 */.ipynb_checkpoints/
 *csv
 .env
