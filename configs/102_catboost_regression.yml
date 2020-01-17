@@ -1,0 +1,18 @@
+task:
+    regression
+model_class:
+    ModelCatBoostRegressor
+model_params:
+    thread_count: -1
+    n_estimators: 10000
+    learning_rate: 0.01
+    verbose: -1
+    # depth: 10
+    depth: 6
+    # colsample_bylevel: 0.5
+    early_stopping_rounds: 300
+    # l2_leaf_reg: 18
+    l2_leaf_reg: 75
+    border_count: 172
+    random_seed: 42
+    use_best_model: True
