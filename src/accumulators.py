@@ -97,6 +97,8 @@ class UserStatsAcc:
         output = dict(self.event_code_counter[ins_id])
         output.update(self.title_couter[ins_id])
         output['session_title'] = row['title']
+        output['world'] = row['world']
+        output['timestamp'] = row['timestamp']
         output['ins_id'] = ins_id
         output['last_title'] = self.last_title[ins_id]
         output['last_world'] = self.last_world[ins_id]
