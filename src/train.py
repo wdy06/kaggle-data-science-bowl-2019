@@ -86,6 +86,7 @@ try:
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
 
     X, y = new_train[all_features], new_train['accuracy_group']
+    X_test = X_test[all_features]
 
     config = utils.load_yaml(args.config)
     logger.debug(config)
@@ -114,7 +115,7 @@ try:
     utils.dump_pickle(fold_indices, result_dir / 'fold_indices.pkl')
 
     runner = Runner(run_name='train_cv',
-                    x=X[all_features],
+                    x=X,
                     y=y,
                     model_cls=config['model_class'],
                     params=model_params,
@@ -141,7 +142,7 @@ try:
 
     # process test set
     # X_test = utils.load_pickle(test_feat_path)
-    preds = runner.run_predict_cv(X_test[all_features])
+    preds = runner.run_predict_cv(X_test)
     if config['task'] == 'regression':
         preds = optR.predict(preds, best_coef)
     save_path = result_dir / f'submission_val{val_score:.5f}.csv'
