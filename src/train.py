@@ -13,7 +13,7 @@ import mylogger
 import preprocess
 import utils
 from dataset import DSB2019Dataset
-from optimizedrounder import OptimizedRounder, HistBaseRounder
+from optimizedrounder import HistBaseRounder, OptimizedRounder
 from runner import Runner
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
@@ -50,9 +50,13 @@ try:
     new_train = utils.load_pickle(train_feat_path)
     X_test = utils.load_pickle(test_feat_path)
 
+    # some feature engineering
+    new_train = features.add_agg_feature(new_train)
+    X_test = features.add_agg_feature(X_test)
+
     shutil.copyfile(utils.FEATURE_DIR / 'feature_mapper.json',
                     result_dir / 'feature_mapper.json')
-    features_list = utils.load_yaml(utils.CONFIG_DIR / '508_features_list.yml')
+    features_list = utils.load_yaml(utils.CONFIG_DIR / '509_features_list.yml')
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
     all_features = features_list['features']
     categorical_feat = features_list['categorical_features']
@@ -77,7 +81,7 @@ try:
             feat for feat in all_features if feat not in to_exclude]
         features_list['features'] = all_features
         utils.dump_json(adjust_dict, result_dir / 'adjust.json')
-    # logger.debug(all_features)
+    logger.debug(all_features)
     logger.debug(f'features num: {len(all_features)}')
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
 

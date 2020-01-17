@@ -87,6 +87,7 @@ if utils.ON_KAGGLE:
 else:
     X_test = utils.load_pickle(test_feat_path)
 
+X_test = features.add_agg_feature(X_test)
 # adjust data
 if os.path.exists(input_dir / 'adjust.json'):
     print('adjust !!!')
@@ -98,6 +99,7 @@ if os.path.exists(input_dir / 'adjust.json'):
 X_test = X_test[all_features]
 # preds = runner.run_predict_all(X_test)
 preds = runner.run_predict_cv(X_test)
+print(preds)
 if config['task'] == 'regression':
     # optR = OptimizedRounder()
     optR = HistBaseRounder()

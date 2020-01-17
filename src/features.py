@@ -147,6 +147,23 @@ def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode)
         return compiled_feature
 
 
+def add_agg_feature(df):
+    df['ins_session_count'] = df.groupby(
+        ['ins_id'])['Clip'].transform('count')
+    df['ins_duration_mean'] = df.groupby(
+        ['ins_id'])['duration_mean'].transform('mean')
+    df['ins_title_nunique'] = df.groupby(
+        ['ins_id'])['session_title'].transform('nunique')
+
+    # df['sum_event_code_count'] = df[[2050, 4100, 4230, 5000, 4235, 2060, 4110, 5010, 2070, 2075, 2080, 2081, 2083, 3110, 4010, 3120, 3121, 4020, 4021,
+    #                                  4022, 4025, 4030, 4031, 3010, 4035, 4040, 3020, 3021, 4045, 2000, 4050, 2010, 2020, 4070, 2025, 2030, 4080, 2035,
+    #                                  2040, 4090, 4220, 4095]].sum(axis=1)
+
+    # df['installation_event_code_count_mean'] = df.groupby(
+    #     ['installation_id'])['sum_event_code_count'].transform('mean')
+    return df
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='feature generator')
