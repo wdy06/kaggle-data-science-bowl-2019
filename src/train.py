@@ -89,11 +89,14 @@ try:
     model_params = config['model_params']
     model_params['categorical_feature'] = categorical_feat
 
-    if not utils.ON_KAGGLE and config['model_class'] == 'ModelLGBMRegressor':
-        model_params['device'] = 'gpu'
-        model_params['gpu_platform_id'] = 0
-        model_params['gpu_device_id'] = 0
-        model_params['gpu_use_dp'] = True
+    if not utils.ON_KAGGLE:
+        if config['model_class'] == 'ModelLGBMRegressor':
+            model_params['device'] = 'gpu'
+            model_params['gpu_platform_id'] = 0
+            model_params['gpu_device_id'] = 0
+            model_params['gpu_use_dp'] = True
+        if config['model_class'] == 'ModelXGBRegressor':
+            model_params['tree_method'] = 'gpu_hist'
 
     oof = np.zeros(len(X))
     # NFOLDS = 5
