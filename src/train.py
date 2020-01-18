@@ -43,20 +43,23 @@ try:
 
     train_feat_path = utils.FEATURE_DIR / 'train_features.pkl'
     test_feat_path = utils.FEATURE_DIR / 'test_features.pkl'
+    all_test_feat_path = utils.FEATURE_DIR / 'all_test_features.pkl'
     if args.debug:
         train_feat_path = utils.FEATURE_DIR / 'train_features_debug.pkl'
         test_feat_path = utils.FEATURE_DIR / 'test_features_debug.pkl'
+        all_test_feat_path = utils.FEATURE_DIR / 'all_test_features_debug.pkl'
 
     new_train = utils.load_pickle(train_feat_path)
     X_test = utils.load_pickle(test_feat_path)
+    X_test_all = utils.load_pickle(all_test_feat_path)
 
     # some feature engineering
-    new_train = features.add_agg_feature(new_train)
-    X_test = features.add_agg_feature(X_test)
+    new_train = features.add_agg_feature_train(new_train)
+    X_test = features.add_agg_feature_test(X_test, X_test_all)
 
     shutil.copyfile(utils.FEATURE_DIR / 'feature_mapper.json',
                     result_dir / 'feature_mapper.json')
-    features_list = utils.load_yaml(utils.CONFIG_DIR / '509_features_list.yml')
+    features_list = utils.load_yaml(utils.CONFIG_DIR / '510_features_list.yml')
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
     all_features = features_list['features']
     categorical_feat = features_list['categorical_features']

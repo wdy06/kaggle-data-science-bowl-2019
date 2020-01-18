@@ -122,6 +122,7 @@ def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode)
         win_code, event_code_list, event_id_list, is_test)
     # ass_title_acc = accumulators.AssTitleAcc(win_code)
     compiled_feature = []
+    all_test = []
     for i, (ins_id, user_sample) in tqdm(enumerate(df.groupby('installation_id', sort=False)), total=total):
         user_feature = []
         for k in range(len(user_sample)):
@@ -139,15 +140,17 @@ def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode)
             compiled_feature += user_feature
         elif mode == 'test':
             compiled_feature += [user_feature[-1]]
+            all_test += user_feature
     compiled_feature = pd.DataFrame(compiled_feature)
+    all_test = pd.DataFrame(all_test)
     # feature_mapper = ass_title_acc.get_mapper()
     if mode == 'train':
         return compiled_feature
     else:
-        return compiled_feature
+        return compiled_feature, all_test
 
 
-def add_agg_feature(df):
+def add_agg_feature_train(df):
     df['ins_session_count'] = df.groupby(
         ['ins_id'])['Clip'].transform('count')
     df['ins_duration_mean'] = df.groupby(
@@ -155,13 +158,54 @@ def add_agg_feature(df):
     df['ins_title_nunique'] = df.groupby(
         ['ins_id'])['session_title'].transform('nunique')
 
-    # df['sum_event_code_count'] = df[[2050, 4100, 4230, 5000, 4235, 2060, 4110, 5010, 2070, 2075, 2080, 2081, 2083, 3110, 4010, 3120, 3121, 4020, 4021,
-    #                                  4022, 4025, 4030, 4031, 3010, 4035, 4040, 3020, 3021, 4045, 2000, 4050, 2010, 2020, 4070, 2025, 2030, 4080, 2035,
-    #                                  2040, 4090, 4220, 4095]].sum(axis=1)
+    df['sum_event_code_count'] = df[[
+        'event_code2050_count', 'event_code4100_count', 'event_code4230_count',
+        'event_code5000_count', 'event_code4235_count', 'event_code2060_count',
+        'event_code4110_count', 'event_code5010_count', 'event_code2070_count',
+        'event_code2075_count', 'event_code2080_count', 'event_code2081_count',
+        'event_code2083_count', 'event_code3110_count', 'event_code4010_count',
+        'event_code3120_count', 'event_code3121_count', 'event_code4020_count',
+        'event_code4021_count', 'event_code4022_count', 'event_code4025_count',
+        'event_code4030_count', 'event_code4031_count', 'event_code3010_count',
+        'event_code4035_count', 'event_code4040_count', 'event_code3020_count',
+        'event_code3021_count', 'event_code4045_count', 'event_code2000_count',
+        'event_code4050_count', 'event_code2010_count', 'event_code2020_count',
+        'event_code4070_count', 'event_code2025_count', 'event_code2030_count',
+        'event_code4080_count', 'event_code2035_count', 'event_code2040_count',
+        'event_code4090_count', 'event_code4220_count', 'event_code4095_count']].sum(axis=1)
 
-    # df['installation_event_code_count_mean'] = df.groupby(
-    #     ['installation_id'])['sum_event_code_count'].transform('mean')
+    df['ins_event_code_count_mean'] = df.groupby(
+        ['ins_id'])['sum_event_code_count'].transform('mean')
     return df
+
+
+def add_agg_feature_test(test, test_all):
+    test['ins_session_count'] = test['ins_id'].map(test_all.groupby(
+        ['ins_id'])['Clip'].count())
+    test['ins_duration_mean'] = test['ins_id'].map(test_all.groupby(
+        ['ins_id'])['duration_mean'].mean())
+    test['ins_title_nunique'] = test['ins_id'].map(test_all.groupby(
+        ['ins_id'])['session_title'].nunique())
+
+    test_all['sum_event_code_count'] = test_all[[
+        'event_code2050_count', 'event_code4100_count', 'event_code4230_count',
+        'event_code5000_count', 'event_code4235_count', 'event_code2060_count',
+        'event_code4110_count', 'event_code5010_count', 'event_code2070_count',
+        'event_code2075_count', 'event_code2080_count', 'event_code2081_count',
+        'event_code2083_count', 'event_code3110_count', 'event_code4010_count',
+        'event_code3120_count', 'event_code3121_count', 'event_code4020_count',
+        'event_code4021_count', 'event_code4022_count', 'event_code4025_count',
+        'event_code4030_count', 'event_code4031_count', 'event_code3010_count',
+        'event_code4035_count', 'event_code4040_count', 'event_code3020_count',
+        'event_code3021_count', 'event_code4045_count', 'event_code2000_count',
+        'event_code4050_count', 'event_code2010_count', 'event_code2020_count',
+        'event_code4070_count', 'event_code2025_count', 'event_code2030_count',
+        'event_code4080_count', 'event_code2035_count', 'event_code2040_count',
+        'event_code4090_count', 'event_code4220_count', 'event_code4095_count']].sum(axis=1)
+
+    test['ins_event_code_count_mean'] = test['ins_id'].map(test_all.groupby(
+        ['ins_id'])['sum_event_code_count'].mean())
+    return test
 
 
 if __name__ == '__main__':
@@ -177,10 +221,12 @@ if __name__ == '__main__':
         print('running debug mode ...')
         train_feat_path = utils.FEATURE_DIR / 'train_features_debug.pkl'
         test_feat_path = utils.FEATURE_DIR / 'test_features_debug.pkl'
+        all_test_feat_path = utils.FEATURE_DIR / 'all_test_features_debug.pkl'
         feat_mapper_path = utils.FEATURE_DIR / 'feature_mapper_debug.json'
     else:
         train_feat_path = utils.FEATURE_DIR / 'train_features.pkl'
         test_feat_path = utils.FEATURE_DIR / 'test_features.pkl'
+        all_test_feat_path = utils.FEATURE_DIR / 'all_test_features.pkl'
         feat_mapper_path = utils.FEATURE_DIR / 'feature_mapper.json'
 
     print('loading dataset ...')
@@ -212,7 +258,7 @@ if __name__ == '__main__':
     utils.dump_pickle(train_feature, train_feat_path)
     # utils.dump_json(feature_mapper, feat_mapper_path)
 
-    test_feature = generate_features_by_acc(
+    test_feature, all_test_history = generate_features_by_acc(
         test.main_df, win_code, event_code_list, event_id_list, mode='test')
 
     # for feat_name in feature_mapper.keys():
@@ -220,6 +266,8 @@ if __name__ == '__main__':
     #         feature_mapper[feat_name])
     print(f'test shape: {test_feature.shape}')
     utils.dump_pickle(test_feature, test_feat_path)
+    print(f'all test shape: {all_test_history.shape}')
+    utils.dump_pickle(all_test_history, all_test_feat_path)
 
     print('save features !')
     print('finish !!!')
