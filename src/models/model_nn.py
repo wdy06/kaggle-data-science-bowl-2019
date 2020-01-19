@@ -47,7 +47,7 @@ class ModelNNRegressor(Model):
         ])
 
         self.model.compile(optimizer=Adam(
-            learning_rate=learning_rate), loss=loss)
+            lr=learning_rate), loss=loss)
         callbacks = []
         # callbacksa.append(ModelCheckpoint(save_best_only=True))
         callbacks.append(EarlyStopping(patience=10))
