@@ -6,6 +6,7 @@ from time import time
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold
+import sandesh
 
 import features
 import metrics
@@ -19,6 +20,8 @@ from runner import Runner
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
 parser.add_argument("--config", "-c", type=str,
                     required=True, help="config path")
+parser.add_argument("--feature", "-f", type=str,
+                    required=True, help="feature list path")
 parser.add_argument("--high-corr", type=str,
                     default=None, help="path to feature list to remove")
 parser.add_argument("--adjust", help="adjust train and test hist",
@@ -32,12 +35,12 @@ print(utils.DATA_DIR)
 print(utils.RESULTS_BASE_DIR)
 
 try:
-
-    result_dir = utils.RESULTS_BASE_DIR / \
-        utils.make_experiment_name(args.debug)
+    exp_name = utils.make_experiment_name(args.debug)
+    result_dir = utils.RESULTS_BASE_DIR / exp_name
     os.mkdir(result_dir)
 
     logger = mylogger.get_mylogger(filename=result_dir / 'log')
+    sandesh.send(f'start: {exp_name}')
     logger.debug(f'created: {result_dir}')
     logger.debug('loading data ...')
 
@@ -54,12 +57,17 @@ try:
     X_test_all = utils.load_pickle(all_test_feat_path)
 
     # some feature engineering
+    new_train = features.add_feature(new_train)
+    X_test = features.add_feature(X_test)
+
     new_train = features.add_agg_feature_train(new_train)
     X_test = features.add_agg_feature_test(X_test, X_test_all)
 
     shutil.copyfile(utils.FEATURE_DIR / 'feature_mapper.json',
                     result_dir / 'feature_mapper.json')
-    features_list = utils.load_yaml(utils.CONFIG_DIR / '510_features_list.yml')
+    # features_list = utils.load_yaml(utils.CONFIG_DIR / '509_features_list.yml')
+    sandesh.send(args.feature)
+    features_list = utils.load_yaml(args.feature)
     utils.dump_yaml(features_list, result_dir / 'features_list.yml')
     all_features = features_list['features']
     categorical_feat = features_list['categorical_features']
@@ -91,6 +99,7 @@ try:
     X, y = new_train[all_features], new_train['accuracy_group']
     X_test = X_test[all_features]
 
+    sandesh.send(args.config)
     config = utils.load_yaml(args.config)
     logger.debug(config)
     utils.dump_yaml(config, result_dir / 'model_config.yml')
@@ -152,6 +161,9 @@ try:
     logger.debug(f'OOF QWK: {val_score}')
     logger.debug('-' * 30)
 
+    sandesh.send(f'OOF RMSE: {val_rmse}')
+    sandesh.send(f'OOF QWK: {val_score}')
+
     # process test set
     # X_test = utils.load_pickle(test_feat_path)
     preds = runner.run_predict_cv(X_test)
@@ -164,9 +176,12 @@ try:
     submission['accuracy_group'] = np.round(preds).astype('int')
     submission.to_csv(save_path, index=False)
     logger.debug(f'save to {save_path}')
+    sandesh.send(f'finish: {save_path}')
+    sandesh.send('-' * 30)
 
 
 except Exception as e:
     print(e)
+    sandesh.send(e)
     logger.exception(e)
     raise e
