@@ -34,9 +34,9 @@ class UserStatsAcc:
         self.user_activities_count = defaultdict(lambda: defaultdict(int))
         self.last_session_id = defaultdict(lambda: None)
         self.last_activity = defaultdict(int)
-        self.last_title = defaultdict(lambda: -1)
+        self.last_title = defaultdict(lambda: 999)
         self.last_title_acc = defaultdict(lambda: defaultdict(lambda: -1))
-        self.last_world = defaultdict(lambda: -1)
+        self.last_world = defaultdict(lambda: 999)
         self.last_time = {}
         self.durations = defaultdict(list)
         self.is_test = is_test

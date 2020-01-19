@@ -50,6 +50,7 @@ gc.collect()
 
 features_list = utils.load_yaml(input_dir / 'features_list.yml')
 all_features = features_list['features']
+cat_features = features_list['categorical_features']
 print(all_features)
 print(f'features num: {len(all_features)}')
 # X, y = new_train[all_features], new_train['accuracy_group']
@@ -58,7 +59,7 @@ config_path = input_dir / 'model_config.yml'
 config = utils.load_yaml(config_path)
 print(config)
 model_params = config['model_params']
-model_params['categorical_feature'] = features_list['categorical_features']
+model_params['categorical_feature'] = cat_features
 
 fold_indices = utils.load_pickle(input_dir / 'fold_indices.pkl')
 
@@ -100,9 +101,18 @@ if os.path.exists(input_dir / 'adjust.json'):
         X_test[key] *= factor
 
 X_test = X_test[all_features]
-print(X_test)
+
+if config['model_class'] == 'ModelNNRegressor':
+    print('preprocessing for nn ...')
+    encoder_dict = utils.load_pickle(input_dir / 'encoder_dict.pkl')
+    X_test = preprocess.preprocess_for_nn_from_encoder_dict(
+        X_test, all_features, cat_features, encoder_dict)
+# print(X_test)
 # preds = runner.run_predict_all(X_test)
 preds = runner.run_predict_cv(X_test)
+if config['model_class'] == 'ModelNNRegressor':
+    print('post processing for nn ...')
+    preds = preprocess.postprocess_for_nn(preds, encoder_dict)
 print(preds)
 if config['task'] == 'regression':
     # optR = OptimizedRounder()

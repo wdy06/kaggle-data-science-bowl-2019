@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
-from tqdm import tqdm
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 
 import utils
 
@@ -107,3 +107,71 @@ def adjust_data(features_list, categorical_feat, train, test):
         #     print(feature, train_mean, test_mean)
 
     return train, test, ajusted_test, to_exclude, adjust_dict
+
+
+def preprocess_for_nn(x_train, x_test, y_train, features_list, cat_feat_list):
+    encoder_dict = {}
+    new_train = np.array([])
+    new_test = np.array([])
+    print(new_train.shape)
+    if len(cat_feat_list) > 0:
+        for cat_feat_name in cat_feat_list:
+            print(cat_feat_name)
+            encoder = OneHotEncoder(sparse=False)
+            feat_train = encoder.fit_transform(x_train[[cat_feat_name]])
+            feat_test = encoder.transform(x_test[[cat_feat_name]])
+            new_train = np.concatenate(
+                (new_train, feat_train), axis=1) if new_train.size else feat_train
+            new_test = np.concatenate(
+                (new_test, feat_test), axis=1) if new_test.size else feat_test
+            encoder_dict[cat_feat_name] = encoder
+    numeric_feat_list = [
+        feat for feat in features_list if feat not in cat_feat_list]
+    scaler = MinMaxScaler()
+    feat_train = scaler.fit_transform(x_train[numeric_feat_list])
+    feat_test = scaler.transform(x_test[numeric_feat_list])
+    new_train = np.concatenate([new_train, feat_train], axis=1)
+    new_test = np.concatenate([new_test, feat_test], axis=1)
+    encoder_dict['numeric'] = scaler
+
+    y_scaler = MinMaxScaler()
+    new_train_y = y_scaler.fit_transform(y_train.values.reshape(-1, 1))
+    encoder_dict['accuracy_group'] = y_scaler
+    new_train = pd.DataFrame(new_train)
+    new_test = pd.DataFrame(new_test)
+    new_train_y = pd.DataFrame(new_train_y)
+
+    return new_train, new_test, new_train_y, encoder_dict
+
+
+def preprocess_for_nn_from_encoder_dict(x_test, features_list, cat_feat_list, encoder_dict):
+    new_test = np.array([])
+    if len(cat_feat_list) > 0:
+        for cat_feat_name in cat_feat_list:
+            print(cat_feat_name)
+            encoder = encoder_dict[cat_feat_name]
+            feat_test = encoder.transform(x_test[[cat_feat_name]])
+            new_test = np.concatenate(
+                (new_test, feat_test), axis=1) if new_test.size else feat_test
+    numeric_feat_list = [
+        feat for feat in features_list if feat not in cat_feat_list]
+    scaler = encoder_dict['numeric']
+    feat_test = scaler.transform(x_test[numeric_feat_list])
+    new_test = np.concatenate([new_test, feat_test], axis=1)
+    new_test = pd.DataFrame(new_test)
+
+    return new_test
+
+
+def postprocess_for_nn(preds_y, encoder_dict, true_y=None):
+
+    preds_y = encoder_dict['accuracy_group'].inverse_transform(
+        preds_y.reshape(-1, 1))
+    preds_y = preds_y.flatten()
+
+    if true_y is not None:
+        true_y = encoder_dict['accuracy_group'].inverse_transform(true_y)
+        true_y = true_y.flatten()
+        return preds_y, true_y
+    else:
+        return preds_y

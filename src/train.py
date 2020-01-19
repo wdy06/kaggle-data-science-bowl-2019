@@ -97,6 +97,12 @@ try:
     model_params = config['model_params']
     model_params['categorical_feature'] = categorical_feat
 
+    # preprocess for neural network
+    if config['model_class'] == 'ModelNNRegressor':
+        X, X_test, y, encoder_dict = preprocess.preprocess_for_nn(
+            X, X_test, y, all_features, categorical_feat)
+        utils.dump_pickle(encoder_dict, result_dir / 'encoder_dict.pkl')
+
     if not utils.ON_KAGGLE:
         if config['model_class'] == 'ModelLGBMRegressor':
             model_params['device'] = 'gpu'
@@ -127,6 +133,9 @@ try:
                     fold_indices=fold_indices
                     )
     val_score, oof_preds = runner.run_train_cv()
+    if config['model_class'] == 'ModelNNRegressor':
+        oof_preds, y = preprocess.postprocess_for_nn(
+            oof_preds, encoder_dict, y)
     if config['task'] == 'regression':
         val_rmse = metrics.rmse(oof_preds, y)
         # optR = OptimizedRounder()
