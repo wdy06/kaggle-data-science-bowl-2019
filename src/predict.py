@@ -91,6 +91,7 @@ else:
     X_test = utils.load_pickle(test_feat_path)
     all_test_history = utils.load_pickle(all_test_feat_path)
 
+X_test = features.add_feature(X_test)
 X_test = features.add_agg_feature_test(X_test, all_test_history)
 # adjust data
 if os.path.exists(input_dir / 'adjust.json'):

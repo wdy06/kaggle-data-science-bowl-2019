@@ -179,6 +179,18 @@ def add_agg_feature_train(df):
     return df
 
 
+def add_feature(df):
+    df['hour'] = df['timestamp'].dt.hour
+    df['dayofweek'] = df['timestamp'].dt.dayofweek
+    df['Is_Weekend'] = np.where(((df['timestamp'].dt.day_name() == 'Sunday') | (
+        df['timestamp'].dt.day_name() == 'Saturday')), 1, 0)
+    df['Phase_Of_Day'] = np.where(df['timestamp'].dt.hour.isin(range(6, 12)), 0,
+                                  np.where(df['timestamp'].dt.hour.isin(range(13, 19)),
+                                           1, 2))
+
+    return df
+
+
 def add_agg_feature_test(test, test_all):
     test['ins_session_count'] = test['ins_id'].map(test_all.groupby(
         ['ins_id'])['Clip'].count())
