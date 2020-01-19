@@ -2,15 +2,12 @@ import argparse
 import gc
 import os
 from pathlib import Path
-from time import time
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import StratifiedKFold
 
 import features
 import metrics
-import mylogger
 import preprocess
 import utils
 from dataset import DSB2019Dataset
