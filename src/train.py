@@ -112,6 +112,10 @@ try:
             X, X_test, y, all_features, categorical_feat)
         utils.dump_pickle(encoder_dict, result_dir / 'encoder_dict.pkl')
 
+    utils.dump_pickle(X, result_dir / 'train_x.pkl')
+    utils.dump_pickle(X_test, result_dir / 'test_x.pkl')
+    utils.dump_pickle(y, result_dir / 'train_y.pkl')
+
     if not utils.ON_KAGGLE:
         if config['model_class'] == 'ModelLGBMRegressor':
             model_params['device'] = 'gpu'
