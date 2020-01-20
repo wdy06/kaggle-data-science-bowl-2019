@@ -63,5 +63,15 @@ class Runner:
         preds = model.predict(test_x)
         return preds
 
+    def get_oof_preds(self):
+        oof_preds = np.zeros(len(self.y))
+        for i_fold, (trn_idx, val_idx) in enumerate(self.fold_indeices):
+            val_x = self.x.iloc[val_idx]
+            model = self.build_model()
+            model.load_model(
+                self.save_dir / f'{self.run_name}_fold{i_fold}.pkl')
+            oof_preds[val_idx] = model.predict(val_x)
+        return oof_preds, self.y
+
     def build_model(self):
         return MODEL_MAP[self.model_cls]('test_build', self.params)
