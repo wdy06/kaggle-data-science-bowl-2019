@@ -179,7 +179,8 @@ def add_agg_feature_train(df):
     return df
 
 
-def add_feature(df):
+def add_feature(df, activities_map):
+    # add time feature
     df['hour'] = df['timestamp'].dt.hour
     df['dayofweek'] = df['timestamp'].dt.dayofweek
     df['Is_Weekend'] = np.where(((df['timestamp'].dt.day_name() == 'Sunday') | (
@@ -187,6 +188,25 @@ def add_feature(df):
     df['Phase_Of_Day'] = np.where(df['timestamp'].dt.hour.isin(range(6, 12)), 0,
                                   np.where(df['timestamp'].dt.hour.isin(range(13, 19)),
                                            1, 2))
+
+    train_label = pd.read_csv(utils.DATA_DIR / 'train_labels.csv')
+    print(train_label.columns)
+    train_label['title'] = train_label['title'].map(activities_map)
+    train_label = train_label.rename(columns={'title': 'session_title'})
+    ass_title_stas \
+        = train_label.groupby('session_title').agg(
+            title_acc_mean=('accuracy', 'mean'),
+            title_acc_std=('accuracy', 'std'),
+            title_acc_group_mean=('accuracy_group', 'mean'),
+            title_acc_group_std=('accuracy_group', 'std'),
+            title_num_correct_mean=('num_correct', 'mean'),
+            title_num_correct_std=('num_correct', 'std'),
+            title_num_incorrect_mean=('num_incorrect', 'mean'),
+            title_num_incorrect_std=('num_incorrect', 'std'),
+            title_num_incorrect_max=('num_incorrect', 'max'),
+        )
+    print(ass_title_stas.columns)
+    df = df.join(ass_title_stas, on='session_title', how='left')
 
     return df
 

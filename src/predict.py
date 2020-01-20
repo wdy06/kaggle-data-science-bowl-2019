@@ -70,13 +70,14 @@ runner = Runner(run_name='train_cv',
                 fold_indices=fold_indices
                 )
 
+activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
+# feature_mapper = utils.load_json(input_dir / 'feature_mapper.json')
+win_code = utils.make_win_code(activities_map)
+
 # process test set
 if utils.ON_KAGGLE:
     test = DSB2019Dataset(mode='test')
     test = preprocess.preprocess_dataset(test)
-    activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
-    # feature_mapper = utils.load_json(input_dir / 'feature_mapper.json')
-    win_code = utils.make_win_code(activities_map)
     X_test, all_test_history = features.generate_features_by_acc(
         test.main_df, win_code, event_code_list, event_id_list, mode='test')
     # for feat_name in feature_mapper.keys():
@@ -88,7 +89,7 @@ else:
     X_test = utils.load_pickle(test_feat_path)
     all_test_history = utils.load_pickle(all_test_feat_path)
 
-X_test = features.add_feature(X_test)
+X_test = features.add_feature(X_test, activities_map)
 X_test = features.add_agg_feature_test(X_test, all_test_history)
 # adjust data
 if os.path.exists(input_dir / 'adjust.json'):

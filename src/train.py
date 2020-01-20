@@ -57,8 +57,9 @@ try:
     X_test_all = utils.load_pickle(all_test_feat_path)
 
     # some feature engineering
-    new_train = features.add_feature(new_train)
-    X_test = features.add_feature(X_test)
+    activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
+    new_train = features.add_feature(new_train, activities_map)
+    X_test = features.add_feature(X_test, activities_map)
 
     new_train = features.add_agg_feature_train(new_train)
     X_test = features.add_agg_feature_test(X_test, X_test_all)
