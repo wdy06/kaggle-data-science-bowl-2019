@@ -12,10 +12,13 @@ import preprocess
 import utils
 from dataset import DSB2019Dataset
 from optimizedrounder import HistBaseRounder
+from weightoptimzer import WeightOptimzer
 from runner import Runner
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
 parser.add_argument("--debug", help="run debug mode",
+                    action="store_true")
+parser.add_argument("--optimize", help="auto tune ensemble weight",
                     action="store_true")
 parser.add_argument("--test", help="run test mode",
                     action="store_true")
@@ -63,6 +66,8 @@ ens_test_preds = np.zeros(X_test_org.shape[0])
 ens_config = utils.load_yaml(args.config)
 
 sum_weight = 0
+preds_df = pd.DataFrame()
+test_preds_df = pd.DataFrame()
 for i, one_config in enumerate(ens_config):
     # print('-'*30)
     # print(f'{i}: {one_config}')
@@ -84,6 +89,7 @@ for i, one_config in enumerate(ens_config):
                     fold_indices=fold_indices
                     )
     oof_preds, true_y = runner.get_oof_preds()
+    preds_df[i] = oof_preds
     if config['model_class'] == 'ModelNNRegressor':
         encoder_dict = utils.load_pickle(input_dir / 'encoder_dict.pkl')
         oof_preds, true_y = preprocess.postprocess_for_nn(
@@ -134,6 +140,7 @@ for i, one_config in enumerate(ens_config):
     if config['model_class'] == 'ModelNNRegressor':
         print('post processing for nn ...')
         test_preds = preprocess.postprocess_for_nn(test_preds, encoder_dict)
+    test_preds_df[i] = test_preds
     ens_test_preds += test_preds * weight
 
 
@@ -160,8 +167,31 @@ if config['task'] == 'regression':
 print(f'ensemble rmse: {val_rmse}')
 print(f'ensemble qwk: {val_score}')
 
+# find best weight
+if args.optimize:
+    print('finding best weight')
+    weihgt_opt = WeightOptimzer(preds_df, true_y)
+    _, opt_weight = weihgt_opt.fit()
+    # print(f'optimzed score: {-optmized_score}')
+    # print(f'optimzed weight: {opt_weight}')
+    ens_oof_preds = weihgt_opt.weight_pred(preds_df)
+    if config['task'] == 'regression':
+        val_rmse = metrics.rmse(ens_oof_preds, true_y)
+        optR = HistBaseRounder()
+        optR.fit(ens_oof_preds, true_y)
+        ens_best_coef = optR.coefficients()
+        print(f'optimzed ensemble best threshold: {ens_best_coef}')
+        ens_oof_preds = optR.predict(ens_oof_preds, ens_best_coef)
+        val_score = metrics.qwk(ens_oof_preds, true_y)
+        print(f'optimzed rmse score: {val_rmse}')
+        print(f'optimzed qwk score: {val_score}')
+        print(f'optimzed weight: {opt_weight}')
+        print(f'optimzed best coef: {ens_best_coef}')
+
 
 ens_test_preds /= sum_weight
+if args.optimize:
+    ens_test_preds = weihgt_opt.weight_pred(test_preds_df)
 
 if config['task'] == 'regression':
     optR = HistBaseRounder()
