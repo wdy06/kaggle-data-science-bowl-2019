@@ -26,3 +26,4 @@ dataset_path = '/kaggle/input/'
 
 run('python setup.py develop --install-dir /kaggle/working')
 run(f'python src/predict.py --input-dir {dataset_path}')
+# run(f'python src/ensemble.py -c /kaggle/working/configs/900_ensemble.yml')
