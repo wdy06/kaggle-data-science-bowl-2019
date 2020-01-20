@@ -62,6 +62,7 @@ ens_test_preds = np.zeros(X_test_org.shape[0])
 
 ens_config = utils.load_yaml(args.config)
 
+sum_weight = 0
 for i, one_config in enumerate(ens_config):
     # print('-'*30)
     # print(f'{i}: {one_config}')
@@ -88,10 +89,12 @@ for i, one_config in enumerate(ens_config):
         oof_preds, true_y = preprocess.postprocess_for_nn(
             oof_preds, encoder_dict, true_y)
 
+    weight = one_config['weight']
+    sum_weight += weight
     if i < 1:
-        ens_oof_preds = oof_preds
+        ens_oof_preds = oof_preds * weight
     else:
-        ens_oof_preds += oof_preds
+        ens_oof_preds += oof_preds * weight
 
     if config['task'] == 'regression':
         val_rmse = metrics.rmse(oof_preds, true_y)
@@ -104,6 +107,7 @@ for i, one_config in enumerate(ens_config):
     print(f'qwk: {val_score}')
     result_dict.append({'exp_name': one_config['exp_name'],
                         'model_name': one_config['model_name'],
+                        'weight': weight,
                         'val_rmse': val_rmse,
                         'val_qwk': val_score}
                        )
@@ -130,19 +134,20 @@ for i, one_config in enumerate(ens_config):
     if config['model_class'] == 'ModelNNRegressor':
         print('post processing for nn ...')
         test_preds = preprocess.postprocess_for_nn(test_preds, encoder_dict)
-    ens_test_preds += test_preds
+    ens_test_preds += test_preds * weight
 
 
 for one_result in result_dict:
     print('-'*30)
     print(f'exp name: {one_result["exp_name"]}')
     print(f'model name: {one_result["model_name"]}')
+    print(f'weight: {one_result["weight"]}')
     print(f'val rmse: {one_result["val_rmse"]}')
     print(f'val qwk: {one_result["val_qwk"]}')
 
 # find best coef
 print('-'*30)
-ens_oof_preds /= len(ens_config)
+ens_oof_preds /= sum_weight
 if config['task'] == 'regression':
     val_rmse = metrics.rmse(ens_oof_preds, true_y)
     optR = HistBaseRounder()
@@ -156,7 +161,7 @@ print(f'ensemble rmse: {val_rmse}')
 print(f'ensemble qwk: {val_score}')
 
 
-ens_test_preds /= len(ens_config)
+ens_test_preds /= sum_weight
 
 if config['task'] == 'regression':
     optR = HistBaseRounder()
