@@ -13,6 +13,7 @@ from keras.optimizers import Adam
 
 import utils
 from models.model import Model
+from models.keras_layer_normalization.layer_normalization import LayerNormalization
 
 os.environ['PYTHONHASHSEED'] = '0'
 np.random.seed(7)
@@ -30,18 +31,17 @@ class ModelNNRegressor(Model):
         loss = self.params['loss']
         epochs = self.params['epochs']
         self.model = Sequential([
-            # layers.Input(shape=(300,)),
             layers.Dense(200, activation='relu', input_dim=input_dim),
-            # layers.LayerNormalization(),
+            LayerNormalization(),
             layers.Dropout(0.3),
             layers.Dense(100, activation='relu'),
-            # layers.LayerNormalization(),
+            LayerNormalization(),
             layers.Dropout(0.3),
             layers.Dense(50, activation='relu'),
-            # layers.LayerNormalization(),
+            LayerNormalization(),
             layers.Dropout(0.3),
             layers.Dense(25, activation='relu'),
-            # layers.LayerNormalization(),
+            LayerNormalization(),
             layers.Dropout(0.3),
             layers.Dense(1)
         ])
@@ -63,7 +63,10 @@ class ModelNNRegressor(Model):
         return self.model.predict(test_x).flatten()
 
     def save_model(self, path):
-        utils.dump_pickle(self.model, path)
+        # utils.dump_pickle(self.model, path)
+        self.model.save(path)
 
     def load_model(self, path):
-        self.model = utils.load_pickle(path)
+        # self.model = utils.load_pickle(path)
+        self.model = keras.models.load_model(path,
+                                             custom_objects={'LayerNormalization': LayerNormalization})
