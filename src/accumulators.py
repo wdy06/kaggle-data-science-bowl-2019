@@ -1,7 +1,7 @@
-from collections import defaultdict
+import json
+from collections import Counter, defaultdict
 
 import numpy as np
-from collections import Counter
 
 import utils
 
@@ -39,6 +39,12 @@ class UserStatsAcc:
         self.last_world = defaultdict(lambda: 999)
         self.last_time = {}
         self.durations = defaultdict(list)
+        self.game_round = defaultdict(list)
+        self.game_duration = defaultdict(list)
+        self.game_level = defaultdict(list)
+        self.assessment_event_counter = defaultdict(list)
+        self.game_event_counter = defaultdict(list)
+        self.activity_event_counter = defaultdict(list)
         self.is_test = is_test
 
     def update_acc(self, row):
@@ -66,6 +72,28 @@ class UserStatsAcc:
             self.title_couter[ins_id][f'title{session_title}_count'] += 1
             self.event_code_counter[ins_id].update(
                 self.session_acc.get_event_count(row))
+            self.user_activities_count[ins_id]['miss_count'] += session_stats['miss_count']
+            # update event data feature
+            if session_type == 'Game':
+                self.game_event_counter[ins_id].append(row['event_count'])
+                event_data = json.loads(row['event_data'])
+                try:
+                    game_round = event_data['round']
+                    self.game_round[ins_id].append(game_round)
+                except KeyError:
+                    pass
+                try:
+                    game_duration = event_data['duration']
+                    self.game_duration[ins_id].append(game_duration)
+                except KeyError:
+                    pass
+                try:
+                    game_level = event_data['level']
+                    self.game_level[ins_id].append(game_level)
+                except KeyError:
+                    pass
+            elif session_type == 'Activity':
+                self.activity_event_counter[ins_id].append(row['event_count'])
 
             # delete data for memory usage
             self.session_acc.delete_data(row)
@@ -89,6 +117,18 @@ class UserStatsAcc:
             self.user_activities_count[ins_id][f'acc_group_{accuracy_group}_count'] += 1
             self.user_activities_count[ins_id][f'title{session_title}_acc_group_{accuracy_group}_count'] += 1
             self.durations[ins_id].append(session_stats['session_time_length'])
+
+            # code 4025
+            self.user_activities_count[ins_id]['title2_code4025_acc'] += ass_stats['title2_code4025_acc']
+            # code 4020
+            self.user_activities_count[ins_id]['title2_code4020_acc'] += ass_stats['title2_code4020_acc']
+            self.user_activities_count[ins_id]['title12_code4020_acc'] += ass_stats['title12_code4020_acc']
+            self.user_activities_count[ins_id]['title21_code4020_acc'] += ass_stats['title21_code4020_acc']
+            self.user_activities_count[ins_id]['title30_code4020_acc'] += ass_stats['title30_code4020_acc']
+            # event counter
+            self.assessment_event_counter[ins_id].append(row['event_count'])
+
+            self.user_activities_count[ins_id]['sum_chest_assessment_uncorrect'] += ass_stats['chest_assessment_uncorrect']
 
     def get_stats(self, row):
         ins_id = row['installation_id']
@@ -142,6 +182,70 @@ class UserStatsAcc:
             output['duration_mean'] = np.mean(self.durations[ins_id])
             output['duration_std'] = np.std(self.durations[ins_id])
 
+        if len(self.game_round[ins_id]) == 0:
+            output['game_round_mean'] = 0
+            output['game_round_std'] = 0
+        else:
+            output['game_round_mean'] = np.mean(self.game_round[ins_id])
+            output['game_round_std'] = np.std(self.game_round[ins_id])
+
+        if len(self.game_duration[ins_id]) == 0:
+            output['game_duration_mean'] = 0
+            output['game_duration_std'] = 0
+        else:
+            output['game_duration_mean'] = np.mean(self.game_duration[ins_id])
+            output['game_duration_std'] = np.std(self.game_duration[ins_id])
+
+        if len(self.game_level[ins_id]) == 0:
+            output['game_level_mean'] = 0
+            output['game_level_std'] = 0
+        else:
+            output['game_level_mean'] = np.mean(self.game_level[ins_id])
+            output['game_level_std'] = np.std(self.game_level[ins_id])
+
+        if len(self.assessment_event_counter[ins_id]) == 0:
+            output['assessment_event_count_mean'] = 0
+            output['assessment_event_count_std'] = 0
+        else:
+            output['assessment_event_count_mean'] = np.mean(
+                self.assessment_event_counter[ins_id])
+            output['assessment_event_count_std'] = np.std(
+                self.assessment_event_counter[ins_id])
+
+        if len(self.game_event_counter[ins_id]) == 0:
+            output['game_event_count_mean'] = 0
+            output['game_event_count_std'] = 0
+        else:
+            output['game_event_count_mean'] = np.mean(
+                self.game_event_counter[ins_id])
+            output['game_event_count_std'] = np.std(
+                self.game_event_counter[ins_id])
+
+        if len(self.activity_event_counter[ins_id]) == 0:
+            output['activity_event_count_mean'] = 0
+            output['activity_event_count_std'] = 0
+        else:
+            output['activity_event_count_mean'] = np.mean(
+                self.activity_event_counter[ins_id])
+            output['activity_event_count_std'] = np.std(
+                self.activity_event_counter[ins_id])
+
+        output['user_miss_count'] = self.user_activities_count[ins_id]['miss_count']
+        # code 4025
+        output['user_title2_code4025_acc'] = self.user_activities_count[ins_id]['title2_code4025_acc'] / \
+            evaluate_count if evaluate_count > 0 else -1
+        # code 4020
+        output['user_title2_code4020_acc'] = self.user_activities_count[ins_id]['title2_code4020_acc'] / \
+            evaluate_count if evaluate_count > 0 else -1
+        output['user_title12_code4020_acc'] = self.user_activities_count[ins_id]['title12_code4020_acc'] / \
+            evaluate_count if evaluate_count > 0 else -1
+        output['user_title21_code4020_acc'] = self.user_activities_count[ins_id]['title21_code4020_acc'] / \
+            evaluate_count if evaluate_count > 0 else -1
+        output['user_title30_code4020_acc'] = self.user_activities_count[ins_id]['title30_code4020_acc'] / \
+            evaluate_count if evaluate_count > 0 else -1
+
+        output['sum_chest_assessment_uncorrect'] = self.user_activities_count[ins_id]['sum_chest_assessment_uncorrect']
+
         return output
 
     def is_evaluate_timing(self, row, ass_stats):
@@ -182,7 +286,8 @@ class AssessmentAcc:
         self.acc[key]['step_count_in_game'] += 1
         session_type = row['type']
         session_titile = row['title']
-        if session_type == 'Assessment' and row['event_code'] == self.win_code[session_titile]:
+        event_code = row['event_code']
+        if session_type == 'Assessment' and event_code == self.win_code[session_titile]:
             if 'true' in row['event_data']:
                 self.acc[key]['true_attempts_count'] += 1
                 self.acc[key]['attempts_count'] += 1
@@ -190,15 +295,64 @@ class AssessmentAcc:
                 self.acc[key]['false_attempts_count'] += 1
                 self.acc[key]['attempts_count'] += 1
 
+        # Cauldron Filler (Assessment) with event_code4025
+        elif session_titile == 2 and event_code == 4025:
+            if 'true' in row['event_data']:
+                self.acc[key]['title2_code4025_true_attempts_count'] += 1
+                self.acc[key]['title2_code4025_attempts_count'] += 1
+            elif 'false' in row['event_data']:
+                self.acc[key]['title2_code4025_false_attempts_count'] += 1
+                self.acc[key]['title2_code4025_attempts_count'] += 1
+
+        # event code 4020 feature
+        title_list = [2, 12, 21, 30]
+        if session_titile in title_list and event_code == 4020:
+            if 'true' in row['event_data']:
+                self.acc[key][f'title{session_titile}_code4020_true_count'] += 1
+                self.acc[key][f'title{session_titile}_code4020_count'] += 1
+            elif 'false' in row['event_data']:
+                self.acc[key][f'title{session_titile}_code4020_false_count'] += 1
+                self.acc[key][f'title{session_titile}_code4020_count'] += 1
+        # chest assessment_uncorrect feature
+        if row['event_id'] == 'df4fe8b6':
+            self.acc[key]['chest_assessment_uncorrect'] += 1
+
     def get_stats(self, row):
         key = (row['installation_id'], row['game_session'])
         output = {}
+        output['chest_assessment_uncorrect'] = self.acc[key]['chest_assessment_uncorrect']
         output['accuracy_group'], output['accuracy'] = utils.get_accuracy_group(
             self.acc[key]['true_attempts_count'], self.acc[key]['false_attempts_count'])
         output['true_attempts_count'] = self.acc[key]['true_attempts_count']
         output['false_attempts_count'] = self.acc[key]['false_attempts_count']
         output['attempts_count'] = self.acc[key]['attempts_count']
         output['step_count_in_game'] = self.acc[key]['step_count_in_game']
+        # title2 4025
+        _, title2_code4025_acc = utils.get_accuracy_group(
+            self.acc[key]['title2_code4025_true_attempts_count'],
+            self.acc[key]['title2_code4025_false_attempts_count'])
+        output['title2_code4025_acc'] = title2_code4025_acc
+        # code 4020
+        _, title2_code4020_acc = utils.get_accuracy_group(
+            self.acc[key]['title2_code4020_true_count'],
+            self.acc[key]['title2_code4020_false_count'])
+        output['title2_code4020_acc'] = title2_code4020_acc
+
+        _, title12_code4020_acc = utils.get_accuracy_group(
+            self.acc[key]['title12_code4020_true_count'],
+            self.acc[key]['title12_code4020_false_count'])
+        output['title12_code4020_acc'] = title12_code4020_acc
+
+        _, title21_code4020_acc = utils.get_accuracy_group(
+            self.acc[key]['title21_code4020_true_count'],
+            self.acc[key]['title21_code4020_false_count'])
+        output['title21_code4020_acc'] = title21_code4020_acc
+
+        _, title30_code4020_acc = utils.get_accuracy_group(
+            self.acc[key]['title30_code4020_true_count'],
+            self.acc[key]['title30_code4020_false_count'])
+        output['title30_code4020_acc'] = title30_code4020_acc
+
         return output
 
 
@@ -206,6 +360,7 @@ class SessionAcc:
     def __init__(self, event_feat_name_list):
         super().__init__()
         self.acc = defaultdict(lambda: defaultdict(list))
+        self.counter = defaultdict(lambda: defaultdict(int))
         self.event_feat_name_list = event_feat_name_list
         # self.event_counter = defaultdict(lambda: defaultdict(int))
         self.event_counter = defaultdict(lambda: Counter(
@@ -218,6 +373,15 @@ class SessionAcc:
         self.event_counter[key][f'event_code{row["event_code"]}_count'] += 1
         self.event_counter[key][f'title{row["title"]}_event{row["event_code"]}_count'] += 1
         self.event_counter[key][f'id_{row["event_id"]}'] += 1
+        # count misses
+        if row['type'] == 'Game':
+            json_data = json.loads(row['event_data'])
+            if row['event_code'] == 2030:
+                # print(json.loads(row['event_data']))
+                self.counter[key]['miss_count'] += json_data['misses']
+            # try:
+            #     game_round = json_data['round']
+            #     self.counter[key]['game_round']
 
     def get_stats(self, row):
         key = (row['installation_id'], row['game_session'])
@@ -225,6 +389,7 @@ class SessionAcc:
         time_list = self.acc[key]['time']
         output['session_time_length'] = (
             time_list[-1] - time_list[0]).seconds if len(time_list) > 0 else 0
+        output['miss_count'] = self.counter[key]['miss_count']
 
         return output
 
