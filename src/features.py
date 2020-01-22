@@ -190,7 +190,6 @@ def add_feature(df, activities_map):
                                            1, 2))
 
     train_label = pd.read_csv(utils.DATA_DIR / 'train_labels.csv')
-    print(train_label.columns)
     train_label['title'] = train_label['title'].map(activities_map)
     train_label = train_label.rename(columns={'title': 'session_title'})
     ass_title_stas \
@@ -205,7 +204,6 @@ def add_feature(df, activities_map):
             title_num_incorrect_std=('num_incorrect', 'std'),
             title_num_incorrect_max=('num_incorrect', 'max'),
         )
-    print(ass_title_stas.columns)
     df = df.join(ass_title_stas, on='session_title', how='left')
 
     return df
