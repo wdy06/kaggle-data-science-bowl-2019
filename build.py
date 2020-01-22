@@ -12,6 +12,7 @@ def encode_file(path: Path) -> str:
 def build_script():
     to_encode = list(Path('src').glob('*.py')) \
         + list(Path('src/models').glob('*py')) \
+        + list(Path('src/models/keras_layer_normalization').glob('*py')) \
         + [Path('setup.py')] \
         + list(Path('configs').glob('*json')) \
         + list(Path('configs').glob('*yml'))
