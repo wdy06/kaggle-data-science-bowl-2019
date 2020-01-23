@@ -32,16 +32,16 @@ class ModelNNRegressor(Model):
         epochs = self.params['epochs']
         self.model = Sequential([
             layers.Dense(200, activation='relu', input_dim=input_dim),
-            LayerNormalization(),
+            # LayerNormalization(),
             layers.Dropout(0.3),
             layers.Dense(100, activation='relu'),
-            LayerNormalization(),
+            # LayerNormalization(),
             layers.Dropout(0.3),
             layers.Dense(50, activation='relu'),
-            LayerNormalization(),
+            # LayerNormalization(),
             layers.Dropout(0.3),
             layers.Dense(25, activation='relu'),
-            LayerNormalization(),
+            # LayerNormalization(),
             layers.Dropout(0.3),
             layers.Dense(1)
         ])
