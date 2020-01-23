@@ -39,6 +39,8 @@ class UserStatsAcc:
         self.last_world = defaultdict(lambda: 999)
         self.last_time = {}
         self.durations = defaultdict(list)
+        self.activity_durasions = defaultdict(list)
+        self.clip_durations = defaultdict(list)
         self.game_round = defaultdict(list)
         self.game_duration = defaultdict(list)
         self.game_level = defaultdict(list)
@@ -94,6 +96,11 @@ class UserStatsAcc:
                     pass
             elif session_type == 'Activity':
                 self.activity_event_counter[ins_id].append(row['event_count'])
+                self.activity_durasions[ins_id].append(
+                    session_stats['session_time_length'])
+            elif session_type == 'Clip':
+                self.clip_durations[ins_id].append(
+                    session_stats['session_time_length'])
 
             # delete data for memory usage
             self.session_acc.delete_data(row)
@@ -181,13 +188,31 @@ class UserStatsAcc:
         else:
             output['duration_mean'] = np.mean(self.durations[ins_id])
             output['duration_std'] = np.std(self.durations[ins_id])
+        if len(self.activity_durasions[ins_id]) == 0:
+            output['activity_duration_mean'] = 0
+            output['activity_duration_std'] = 0
+        else:
+            output['activity_duration_mean'] = np.mean(
+                self.activity_durasions[ins_id])
+            output['activity_duration_std'] = np.std(
+                self.activity_durasions[ins_id])
+        if len(self.clip_durations[ins_id]) == 0:
+            output['clip_duration_mean'] = 0
+            output['clip_duration_std'] = 0
+        else:
+            output['clip_duration_mean'] = np.mean(self.clip_durations[ins_id])
+            output['clip_duration_std'] = np.std(self.clip_durations[ins_id])
 
         if len(self.game_round[ins_id]) == 0:
             output['game_round_mean'] = 0
             output['game_round_std'] = 0
+            output['game_round_min'] = 0
+            output['game_round_max'] = 0
         else:
             output['game_round_mean'] = np.mean(self.game_round[ins_id])
             output['game_round_std'] = np.std(self.game_round[ins_id])
+            output['game_round_min'] = np.min(self.game_round[ins_id])
+            output['game_round_max'] = np.max(self.game_round[ins_id])
 
         if len(self.game_duration[ins_id]) == 0:
             output['game_duration_mean'] = 0
@@ -199,9 +224,13 @@ class UserStatsAcc:
         if len(self.game_level[ins_id]) == 0:
             output['game_level_mean'] = 0
             output['game_level_std'] = 0
+            output['game_level_min'] = 0
+            output['game_level_max'] = 0
         else:
             output['game_level_mean'] = np.mean(self.game_level[ins_id])
             output['game_level_std'] = np.std(self.game_level[ins_id])
+            output['game_level_min'] = np.min(self.game_level[ins_id])
+            output['game_level_max'] = np.max(self.game_level[ins_id])
 
         if len(self.assessment_event_counter[ins_id]) == 0:
             output['assessment_event_count_mean'] = 0
@@ -215,19 +244,31 @@ class UserStatsAcc:
         if len(self.game_event_counter[ins_id]) == 0:
             output['game_event_count_mean'] = 0
             output['game_event_count_std'] = 0
+            output['game_event_count_min'] = 0
+            output['game_event_count_max'] = 0
         else:
             output['game_event_count_mean'] = np.mean(
                 self.game_event_counter[ins_id])
             output['game_event_count_std'] = np.std(
                 self.game_event_counter[ins_id])
+            output['game_event_count_min'] = np.min(
+                self.game_event_counter[ins_id])
+            output['game_event_count_max'] = np.max(
+                self.game_event_counter[ins_id])
 
         if len(self.activity_event_counter[ins_id]) == 0:
             output['activity_event_count_mean'] = 0
             output['activity_event_count_std'] = 0
+            output['activity_event_count_min'] = 0
+            output['activity_event_count_max'] = 0
         else:
             output['activity_event_count_mean'] = np.mean(
                 self.activity_event_counter[ins_id])
             output['activity_event_count_std'] = np.std(
+                self.activity_event_counter[ins_id])
+            output['activity_event_count_min'] = np.min(
+                self.activity_event_counter[ins_id])
+            output['activity_event_count_max'] = np.max(
                 self.activity_event_counter[ins_id])
 
         output['user_miss_count'] = self.user_activities_count[ins_id]['miss_count']
