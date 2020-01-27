@@ -1,11 +1,10 @@
 import argparse
 import os
+import random
 import shutil
-from time import time
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import StratifiedKFold
 import sandesh
 
 import features
@@ -13,9 +12,9 @@ import metrics
 import mylogger
 import preprocess
 import utils
-from dataset import DSB2019Dataset
 from optimizedrounder import HistBaseRounder, OptimizedRounder
 from runner import Runner
+
 
 parser = argparse.ArgumentParser(description='kaggle data science bowl 2019')
 parser.add_argument("--config", "-c", type=str,
@@ -26,9 +25,13 @@ parser.add_argument("--high-corr", type=str,
                     default=None, help="path to feature list to remove")
 parser.add_argument("--adjust", help="adjust train and test hist",
                     action="store_true")
+parser.add_argument("--truncated", help="use truncated cv",
+                    action="store_true")
 parser.add_argument("--debug", help="run debug mode",
                     action="store_true")
 args = parser.parse_args()
+
+utils.seed_everything()
 
 print(f'on kaggle: {utils.ON_KAGGLE}')
 print(utils.DATA_DIR)
@@ -130,11 +133,22 @@ try:
     # NFOLDS = 5
     new_train.reset_index(inplace=True)
     fold_indices = []
+    all_val_idx = []
     for i_fold in new_train.fold.unique():
         train_idx = new_train.index[new_train['fold'] != i_fold].tolist()
         val_idx = new_train.index[new_train['fold'] == i_fold].tolist()
+        if args.truncated:
+            # select random assessment per ins id
+            new_val_idx = []
+            ins_ids = set(new_train.iloc[val_idx]['ins_id'])
+            for ins_id in ins_ids:
+                new_val_idx.append(random.choice(
+                    new_train[new_train['ins_id'] == ins_id].index))
+            val_idx = new_val_idx
+        all_val_idx += val_idx
         fold_indices.append((train_idx, val_idx))
         print(len(train_idx), len(val_idx))
+
     utils.dump_pickle(fold_indices, result_dir / 'fold_indices.pkl')
 
     runner = Runner(run_name='train_cv',
@@ -151,15 +165,15 @@ try:
         oof_preds, y = preprocess.postprocess_for_nn(
             oof_preds, encoder_dict, y)
     if config['task'] == 'regression':
-        val_rmse = metrics.rmse(oof_preds, y)
+        val_rmse = metrics.rmse(oof_preds[all_val_idx], y[all_val_idx])
         # optR = OptimizedRounder()
         optR = HistBaseRounder()
-        optR.fit(oof_preds, y)
+        optR.fit(oof_preds[all_val_idx], y[all_val_idx])
         best_coef = optR.coefficients()
         logger.debug(f'best threshold: {best_coef}')
         utils.dump_pickle(best_coef, result_dir / 'best_coef.pkl')
         oof_preds = optR.predict(oof_preds, best_coef)
-        val_score = metrics.qwk(oof_preds, y)
+        val_score = metrics.qwk(oof_preds[all_val_idx], y[all_val_idx])
 
     logger.debug('-' * 30)
     logger.debug(f'OOF RMSE: {val_rmse}')
