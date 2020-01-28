@@ -174,6 +174,8 @@ try:
         utils.dump_pickle(best_coef, result_dir / 'best_coef.pkl')
         oof_preds = optR.predict(oof_preds, best_coef)
         val_score = metrics.qwk(oof_preds[all_val_idx], y[all_val_idx])
+    utils.plot_confusion_matrix(
+        y[all_val_idx], oof_preds[all_val_idx], result_dir, normalize=True)
 
     logger.debug('-' * 30)
     logger.debug(f'OOF RMSE: {val_rmse}')

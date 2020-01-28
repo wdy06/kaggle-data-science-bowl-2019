@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import tensorflow as tf
+# import tensorflow as tf
 import torch
 import yaml
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -103,7 +103,7 @@ def save_feature_importance(model, columns, path):
     plt.savefig(path)
 
 
-def plot_confusion_matrix(y_true, y_pred, classes, save_dir,
+def plot_confusion_matrix(y_true, y_pred, save_dir,
                           normalize=False,
                           title=None,
                           cmap=plt.cm.Blues):
@@ -122,7 +122,9 @@ def plot_confusion_matrix(y_true, y_pred, classes, save_dir,
     # Compute confusion matrix
     cm = confusion_matrix(y_true, y_pred)
     # Only use the labels that appear in the data
-    classes = classes[unique_labels(y_true, y_pred)]
+    # classes = classes[unique_labels(y_true, y_pred)]
+    classes = unique_labels(y_true, y_pred).tolist()
+    # print(len(classes))
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
@@ -131,19 +133,20 @@ def plot_confusion_matrix(y_true, y_pred, classes, save_dir,
 
     print(cm)
 
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(20, 20))
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, fontsize=25)
-    plt.yticks(tick_marks, fontsize=25)
-    plt.xlabel('Predicted label', fontsize=25)
-    plt.ylabel('True label', fontsize=25)
-    plt.title(title, fontsize=30)
+    print(tick_marks)
+    plt.xticks(tick_marks, fontsize=50)
+    plt.yticks(tick_marks, fontsize=50)
+    plt.xlabel('Predicted label', fontsize=50)
+    plt.ylabel('True label', fontsize=50)
+    plt.title(title, fontsize=60)
 
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size="5%", pad=0.15)
     cbar = ax.figure.colorbar(im, ax=ax, cax=cax)
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=40)
 
     # We want to show all ticks...
     ax.set(xticks=np.arange(cm.shape[1]),
@@ -164,7 +167,7 @@ def plot_confusion_matrix(y_true, y_pred, classes, save_dir,
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
             ax.text(j, i, format(cm[i, j], fmt),
-                    fontsize=20,
+                    fontsize=40,
                     ha="center", va="center",
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
