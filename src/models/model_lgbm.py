@@ -57,6 +57,15 @@ class ModelLGBMRegressor(Model):
         return self.model.predict(
             test_x, num_iteration=self.model.best_iteration_)
 
+    def get_importance(self):
+        if self.columns is None:
+            raise ValueError('self.columns must be set.')
+        else:
+            df = pd.DataFrame()
+            df['feature'] = self.columns
+            df['gain'] = self.model.feature_importances_
+            return df
+
     def save_model(self, path):
         utils.dump_pickle(self.model, path)
 

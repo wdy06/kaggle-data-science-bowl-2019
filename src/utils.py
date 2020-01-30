@@ -175,15 +175,15 @@ def plot_confusion_matrix(y_true, y_pred, save_dir,
     return ax
 
 
-def save_importances(importances_df, save_dir):
-    mean_gain = importances_df[['gain', 'feature']].groupby('feature').mean()
-    importances_df['mean_gain'] = importances_df['feature'].map(
-        mean_gain['gain'])
-    plt.figure(figsize=(8, 12))
+def save_importances(importances_, save_dir, figsize=(12, 18), max_feat_num=300):
+    mean_gain = importances_[['gain', 'feature']].groupby('feature').mean()
+    importances_['mean_gain'] = importances_['feature'].map(mean_gain['gain'])
+    # print(importances_['feature'].unique())
+    plt.figure(figsize=figsize)
     sns.barplot(
         x='gain',
         y='feature',
-        data=importances_df.sort_values('mean_gain', ascending=False)[:300])
+        data=importances_.sort_values('mean_gain', ascending=False)[:max_feat_num])
     plt.tight_layout()
     plt.savefig(save_dir / 'importances.png')
 

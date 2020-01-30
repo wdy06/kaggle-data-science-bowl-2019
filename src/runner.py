@@ -1,6 +1,10 @@
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 
 from models.helper import MODEL_MAP
+import utils
 
 
 class Runner:
@@ -72,6 +76,19 @@ class Runner:
                 self.save_dir / f'{self.run_name}_fold{i_fold}.pkl')
             oof_preds[val_idx] = model.predict(val_x)
         return oof_preds, self.y
+
+    def save_importance_cv(self):
+        imp_df = pd.DataFrame()
+        for i_fold, _ in enumerate(self.fold_indeices):
+            model = self.build_model()
+            model.load_model(
+                self.save_dir / f'{self.run_name}_fold{i_fold}.pkl')
+            model.set_columns(self.x.columns)
+            df = model.get_importance()
+            print(df)
+            imp_df = pd.concat([imp_df, df], axis=0, sort=False)
+
+        utils.save_importances(imp_df, self.save_dir)
 
     def build_model(self):
         return MODEL_MAP[self.model_cls]('test_build', self.params)

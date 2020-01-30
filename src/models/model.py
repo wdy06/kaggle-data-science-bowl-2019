@@ -12,6 +12,10 @@ class Model(metaclass=ABCMeta):
         self.run_fold_name = run_fold_name
         self.params = params
         self.model = None
+        self.columns = None
+
+    def set_columns(self, columns):
+        self.columns = columns
 
     @abstractmethod
     def fit(self, train_x, train_y, valid_x=None, valid_y=None):
