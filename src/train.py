@@ -6,6 +6,7 @@ import shutil
 import numpy as np
 import pandas as pd
 import sandesh
+from sklearn.model_selection import GroupKFold
 
 import features
 import metrics
@@ -131,12 +132,11 @@ try:
 
     oof = np.zeros(len(X))
     # NFOLDS = 5
+    group_kfold = GroupKFold(n_splits=5)
     new_train.reset_index(inplace=True)
     fold_indices = []
     all_val_idx = []
-    for i_fold in new_train.fold.unique():
-        train_idx = new_train.index[new_train['fold'] != i_fold].tolist()
-        val_idx = new_train.index[new_train['fold'] == i_fold].tolist()
+    for i_fold, (train_idx, val_idx) in enumerate(group_kfold.split(new_train, groups=new_train['ins_id'])):
         if args.truncated:
             # select random assessment per ins id
             new_val_idx = []
@@ -176,6 +176,7 @@ try:
         val_score = metrics.qwk(oof_preds[all_val_idx], y[all_val_idx])
     utils.plot_confusion_matrix(
         y[all_val_idx], oof_preds[all_val_idx], result_dir, normalize=True)
+    runner.save_importance_cv()
 
     logger.debug('-' * 30)
     logger.debug(f'OOF RMSE: {val_rmse}')

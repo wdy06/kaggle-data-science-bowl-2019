@@ -140,7 +140,7 @@ def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode)
             compiled_feature += user_feature
         elif mode == 'test':
             compiled_feature += [user_feature[-1]]
-            all_test += user_feature
+            all_test += user_feature[:-1]
     compiled_feature = pd.DataFrame(compiled_feature)
     all_test = pd.DataFrame(all_test)
     # feature_mapper = ass_title_acc.get_mapper()
