@@ -85,7 +85,7 @@ class Runner:
                 self.save_dir / f'{self.run_name}_fold{i_fold}.pkl')
             model.set_columns(self.x.columns)
             df = model.get_importance()
-            print(df)
+            # print(df)
             imp_df = pd.concat([imp_df, df], axis=0, sort=False)
 
         utils.save_importances(imp_df, self.save_dir)

@@ -28,6 +28,8 @@ parser.add_argument("--adjust", help="adjust train and test hist",
                     action="store_true")
 parser.add_argument("--truncated", help="use truncated cv",
                     action="store_true")
+parser.add_argument("--concat-test", help="concate test into train",
+                    action="store_true")
 parser.add_argument("--debug", help="run debug mode",
                     action="store_true")
 args = parser.parse_args()
@@ -59,6 +61,11 @@ try:
     new_train = utils.load_pickle(train_feat_path)
     X_test = utils.load_pickle(test_feat_path)
     X_test_all = utils.load_pickle(all_test_feat_path)
+
+    if args.concat_test:
+        logger.debug('concate train and all test data ... ')
+        new_train = pd.concat([new_train, X_test_all], axis=0)
+        new_train = new_train.reset_index()
 
     # some feature engineering
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
