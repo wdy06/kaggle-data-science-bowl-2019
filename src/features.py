@@ -150,6 +150,104 @@ def generate_features_by_acc(df, win_code, event_code_list, event_id_list, mode)
         return compiled_feature, all_test
 
 
+def generate_features_by_pandas(df, mode):
+    # preprocess
+    df['correct_'] = df['event_data'].str.contains(
+        '"correct":true').astype(int)
+    df['incorrect_'] = df['event_data'].str.contains(
+        '"correct":false').astype(int)
+    # df.drop(['event_data'], axis=1, inplace=True)
+    df['super_token'] = df['title'].astype(str) + '_' + df['event_code'].astype(
+        str)+'_'+df['correct_'].astype(str)+'_'+df['incorrect_'].astype(str)
+    df['super_token'] = df['super_token'].str.replace(
+        ' ', '').str.replace('-', '')
+
+    df['assess_attempt'] = (((df.event_code == 4100) & (df.title != 21)) |
+                            ((df.event_code == 4110) & (df.title == 21))) &\
+        (df['type'] == 'Assessment')
+    df['assess_attempt'] = df['assess_attempt'].astype(int)
+    df['assess_correct'] = df['correct_'] * df['assess_attempt']
+    df['assess_incorrect'] = df['incorrect_'] * df['assess_attempt']
+
+    df['start_event'] = (df['event_code'] == 2000).astype(int)
+    df['start_assessment'] = (df['type'] == 'Assessment').astype(
+        int) * df['start_event']
+    df['end_event'] = df.start_event.shift(-1, fill_value=1)
+    df['event_global_enc'] = df.start_event.cumsum()
+
+    event_codes = [2000, 3010, 3110, 4020, 4021, 4030, 4035, 4070,
+                   4090, 2020, 2030, 2040, 2050, 2080, 2083, 3020,
+                   3021, 3120, 3121, 4010, 2060, 2070, 4031, 4025,
+                   5000, 5010, 2081, 2025, 4022, 2010, 2035, 4040,
+                   4100, 4110, 4045, 4095, 4220, 2075, 4230, 4235,
+                   4080, 4050]
+    event_code_count = pd.crosstab(
+        df['event_global_enc'], df['event_code'])[event_codes].reset_index()
+    event_id_count = pd.crosstab(
+        df['event_global_enc'], df['event_id']).reset_index()
+
+    agg_df = df.groupby('event_global_enc').agg(
+        installation_id=('installation_id', 'first'),
+        title=('title', 'first'),
+        type=('type', 'first'),
+        world=('world', 'first'),
+        ass_correct_attempts=('assess_correct', 'sum'),
+        ass_incorrect_attempts=('assess_incorrect', 'sum'),
+        ts_min=('timestamp', 'min'),
+        ts_max=('timestamp', 'max'),
+        is_assessment=('start_assessment', 'first')
+    )
+
+    agg_df['all_ass_attempts'] = agg_df['ass_correct_attempts'] + \
+        agg_df['ass_incorrect_attempts']
+    # agg_df['accuracy'] = agg_df['ass_correct_attempts'] / (agg_df['all_ass_attempts']) if agg_df['all_ass_attempts'].item() > 0 else 0
+    agg_df['accuracy'] = 0
+    agg_df['accuracy'] = agg_df['accuracy'].mask(
+        agg_df['all_ass_attempts'] > 0, agg_df['ass_correct_attempts']/agg_df['all_ass_attempts'])
+    agg_df['accuracy_group'] = 0
+    agg_df.loc[(agg_df['ass_incorrect_attempts'] >= 2) & (
+        agg_df['ass_correct_attempts'] > 0), 'accuracy_group'] = 1
+    agg_df.loc[(agg_df['ass_incorrect_attempts'] == 1) & (
+        agg_df['ass_correct_attempts'] > 0), 'accuracy_group'] = 2
+    agg_df.loc[(agg_df['ass_incorrect_attempts'] == 0) & (
+        agg_df['ass_correct_attempts'] > 0), 'accuracy_group'] = 3
+
+    agg_df['game_duration'] = (agg_df['ts_min'] - agg_df['ts_min'].shift(1)).dt.days*3600*24 +\
+        (agg_df['ts_min'] - agg_df['ts_min'].shift(1)).dt.seconds +\
+        (agg_df['ts_min'] - agg_df['ts_min'].shift(1)).dt.microseconds / 1e6
+    agg_df['gs'] = 1
+    agg_df['gs'] = agg_df.groupby('installation_id')[
+        'gs'].transform(pd.Series.cumsum)
+    agg_df.loc[agg_df.gs == 1, 'game_duration'] = 0
+    agg_df['game_duration'] = np.log1p(agg_df['game_duration'])
+
+    agg_df['metric_session'] = agg_df['is_assessment'] * \
+        (agg_df['all_ass_attempts'] > 0).astype(int)
+    agg_df['metric_session_inference'] = agg_df.installation_id != agg_df.installation_id.shift(
+        -1, fill_value=0)
+
+    agg_df = pd.merge(agg_df, event_code_count,
+                      on='event_global_enc', how='left')
+    agg_df = pd.merge(agg_df, event_id_count,
+                      on='event_global_enc', how='left')
+
+    # agg_df = agg_df.drop('installation_id', axis=1)
+    df = df.merge(agg_df.drop('installation_id', axis=1),
+                  on='event_global_enc', how='left')
+
+    df['metric_point'] = df['start_assessment'] * \
+        (df.ass_correct_attempts + df.ass_incorrect_attempts > 0).astype(int)
+    df['metric_point_inference'] = df.installation_id != df.installation_id.shift(
+        -1, fill_value='')
+
+    # if mode == 'train':
+    #     feat_df = df[df['metric_point'] == 1]
+    # elif mode == 'test':
+    #     feat_df = df[df['metric_point_inference']]
+
+    return df, agg_df
+
+
 def add_agg_feature_train(df):
     df['ins_session_count'] = df.groupby(
         ['ins_id'])['Clip'].transform('count')
@@ -264,7 +362,6 @@ if __name__ == '__main__':
     test = DSB2019Dataset(mode='test')
     print('preprocessing ...')
     activities_map = utils.load_json(utils.CONFIG_DIR / 'activities_map.json')
-    # world_map = utils.load_json(utils.CONFIG_DIR / 'world_map.json')
     train = preprocess.preprocess_dataset(train)
     test = preprocess.preprocess_dataset(test)
 
@@ -280,20 +377,13 @@ if __name__ == '__main__':
 
     train_feature = generate_features_by_acc(
         train.main_df, win_code, event_code_list, event_id_list, mode='train')
-    # for feat_name in feature_mapper.keys():
-    #     train_feature[feat_name] = train_feature['session_title'].map(
-    #         feature_mapper[feat_name])
     print(f'train shape: {train_feature.shape}')
 
     utils.dump_pickle(train_feature, train_feat_path)
-    # utils.dump_json(feature_mapper, feat_mapper_path)
 
     test_feature, all_test_history = generate_features_by_acc(
         test.main_df, win_code, event_code_list, event_id_list, mode='test')
 
-    # for feat_name in feature_mapper.keys():
-    #     test_feature[feat_name] = test_feature['session_title'].map(
-    #         feature_mapper[feat_name])
     print(f'test shape: {test_feature.shape}')
     utils.dump_pickle(test_feature, test_feat_path)
     print(f'all test shape: {all_test_history.shape}')
